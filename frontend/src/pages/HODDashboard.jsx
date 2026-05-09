@@ -1,0 +1,307 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye } from 'lucide-react';
+import StatCard from '../components/StatCard';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+
+const HODDashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const [activeTab, setActiveTab] = useState('overview');
+  const [analytics, setAnalytics] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [mentors, setMentors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resAn, resStd, resMen] = await Promise.all([
+        api.get('/analytics/hod'),
+        api.get('/hod/students'),
+        api.get('/hod/mentors')
+      ]);
+      setAnalytics(resAn.data);
+      setStudents(resStd.data);
+      setMentors(resMen.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAssignMentor = async (studentId, mentorId) => {
+    try {
+      await api.put(`/hod/students/${studentId}/assign`, { mentorId });
+      fetchData();
+    } catch (err) {
+      alert("Assignment failed");
+    }
+  };
+
+  const performanceData = {
+    labels: ['Pass', 'Fail'],
+    datasets: [{
+      label: 'Performance Distribution',
+      data: [analytics?.performanceOverview?.pass || 0, analytics?.performanceOverview?.fail || 0],
+      backgroundColor: ['#22c55e', '#ef4444'],
+      borderRadius: 4
+    }],
+  };
+
+  const alertData = {
+    labels: analytics?.alertStats?.byType?.map(a => a.type) || [],
+    datasets: [{
+      data: analytics?.alertStats?.byType?.map(a => a.count) || [],
+      backgroundColor: ['#ef4444', '#eab308', '#4696DA', '#3574AA', '#235179'],
+      borderWidth: 0,
+    }],
+  };
+
+  const mentorDistData = {
+    labels: analytics?.mentorDistribution?.map(m => m.name) || [],
+    datasets: [{
+      label: 'Students Assigned',
+      data: analytics?.mentorDistribution?.map(m => m.studentCount) || [],
+      backgroundColor: '#4696DA',
+      borderRadius: 4
+    }]
+  };
+
+  const chartOptions = { 
+    responsive: true, 
+    maintainAspectRatio: false, 
+    plugins: { 
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#030F1B',
+        padding: 12,
+        titleFont: { size: 14, family: 'Outfit' },
+        bodyFont: { size: 13, family: 'Inter' },
+        cornerRadius: 8
+      }
+    }, 
+    scales: { 
+      y: { 
+        beginAtZero: true, 
+        grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+        ticks: { color: '#64748b', font: { size: 11 } }
+      }, 
+      x: { 
+        grid: { display: false },
+        ticks: { color: '#64748b', font: { size: 11 } }
+      } 
+    } 
+  };
+
+  const doughnutOptions = { 
+    responsive: true, 
+    maintainAspectRatio: false, 
+    plugins: { legend: { position: 'bottom' } }, 
+    cutout: '70%' 
+  };
+
+  const renderOverview = () => (
+    <>
+      <div className="stats-grid mt-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+        <StatCard title="Total Students" value={analytics?.totalStudents || 0} icon={Users} type="primary" />
+        <StatCard title="Active Mentors" value={analytics?.totalMentors || 0} icon={GraduationCap} type="info" />
+        <StatCard title="At-Risk Students" value={analytics?.alertStats?.totalActive || 0} icon={AlertTriangle} type="danger" />
+        <StatCard 
+          title="Pass Rate" 
+          value={`${(analytics?.performanceOverview?.total || 0) > 0 ? Math.round((analytics.performanceOverview.pass / analytics.performanceOverview.total) * 100) : 0}%`} 
+          icon={TrendingUp} 
+          type="success" 
+        />
+      </div>
+
+      <div className="mt-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div className="card">
+          <div className="card-header"><h3>Semester-wise Performance</h3></div>
+          <div className="card-body" style={{ height: '250px' }}>
+            {analytics?.performanceOverview?.total > 0 ? (
+              <Bar data={performanceData} options={chartOptions} />
+            ) : (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No data available</div>
+            )}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><h3>Active Alerts by Type</h3></div>
+          <div className="card-body" style={{ height: '250px' }}>
+            {alertData.labels.length > 0 ? (
+              <Doughnut data={alertData} options={doughnutOptions} />
+            ) : (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No alerts yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        <div className="card">
+          <div className="card-header"><h3>Mentor Workload</h3></div>
+          <div className="card-body" style={{ height: '300px' }}>
+            {mentorDistData.labels.length > 0 ? (
+              <Bar data={mentorDistData} options={chartOptions} />
+            ) : (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No assignments found</div>
+            )}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><h3>Recent Critical Alerts</h3></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {analytics?.recentAlerts?.map(alert => (
+                <div key={alert.id} style={{ padding: '0.75rem', background: '#fff1f2', borderLeft: '4px solid #ef4444', borderRadius: '4px' }}>
+                  <div style={{ fontWeight: '600', fontSize: '13px' }}>{alert.student?.name || 'Unknown'} ({alert.student?.rollNumber || 'N/A'})</div>
+                  <div style={{ fontSize: '12px', color: '#7f1d1d' }}>{alert.message}</div>
+                </div>
+              ))}
+              {(!analytics?.recentAlerts || analytics?.recentAlerts?.length === 0) && <p className="text-muted">No recent critical alerts.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderStudents = () => {
+    const filtered = (students || []).filter(s => (s?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (s?.rollNumber || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return (
+      <div className="card mt-4" style={{ padding: 0 }}>
+        <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
+          <div className="flex-between">
+            <h3>Institutional Student Registry</h3>
+            <div className="search-box" style={{ width: '250px', background: '#f4f7fa', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Search size={16} className="text-muted" />
+              <input type="text" placeholder="Search USN/Name..." style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="card-body">
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>USN</th>
+                  <th>Name</th>
+                  <th>Current Sem</th>
+                  <th>Alerts</th>
+                  <th>Mentor</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(filtered || [])?.map(s => (
+                  <tr key={s.id}>
+                    <td><strong>{s.rollNumber}</strong></td>
+                    <td>{s.name}</td>
+                    <td>Sem {s.semesterRecords?.[0]?.semester || s.currentSemester}</td>
+                    <td>
+                      {(s.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
+                        <span className="alert-pill alert-high">{s.semesterRecords[0].alerts.length} Active</span>
+                      ) : (
+                        <span className="alert-pill alert-low">On Track</span>
+                      )}
+                    </td>
+                    <td>
+                      <select 
+                        className="input-control" 
+                        style={{ padding: '0.2rem 0.5rem', fontSize: '12px' }}
+                        value={s.mentor?.id || ''} 
+                        onChange={(e) => handleAssignMentor(s.id, e.target.value)}
+                      >
+                        <option value="">-- Unassigned --</option>
+                        {(mentors || [])?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                    </td>
+                    <td>
+                      <button className="btn-icon" onClick={() => navigate(`/student/${s.id}`)} title="View Longitudinal Profile">
+                        <Eye size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMentors = () => (
+    <div className="mt-4">
+      <div className="flex-between mb-4">
+         <h3>Active Academic Mentors</h3>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+         {(mentors || [])?.map(m => (
+           <div key={m.id} className="card">
+             <div className="flex-between mb-4">
+                <div>
+                  <h4 style={{ margin: 0 }}>{m?.name || 'Mentor'}</h4>
+                  <small className="text-muted">{m?.email || 'N/A'}</small>
+                </div>
+                <div className="user-avatar" style={{ width: '32px', height: '32px' }}>{m?.name?.charAt(0) || 'M'}</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f4f7fa', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
+                <span style={{ fontSize: '12px', fontWeight: '500' }}>Mentees Assigned</span>
+                <span className="badge" style={{ background: 'var(--c-primary)', color: 'white' }}>{m?._count?.students || 0}</span>
+              </div>
+           </div>
+         ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="dashboard-view">
+      <div className="page-header" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          <div className="icon-badge" style={{ background: 'var(--c-primary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'white' }}>
+            <TrendingUp size={24} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: '1.85rem' }}>HOD Intelligence Terminal</h1>
+            <p className="text-muted">Institutional oversight and longitudinal performance tracking</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="tabs mt-4" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+         <button className={`btn ${activeTab==='overview'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='overview' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('overview')}>Overview</button>
+         <button className={`btn ${activeTab==='students'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='students' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('students')}>Institutional Registry</button>
+         <button className={`btn ${activeTab==='mentors'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='mentors' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('mentors')}>Mentor Registry</button>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '4rem', textAlign: 'center' }} className="text-muted">Fetching institutional intelligence...</div>
+      ) : (
+        <>
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'students' && renderStudents()}
+          {activeTab === 'mentors' && renderMentors()}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default HODDashboard;

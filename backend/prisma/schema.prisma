@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(MENTOR)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  maxStudents  Int           @default(30)
+  progressLogs ProgressLog[]
+  students     Student[]     @relation("AssignedStudents")
+}
+
+model Student {
+  id                  String           @id @default(uuid())
+  name                String
+  rollNumber          String           @unique
+  department          String
+  currentYear         Int              @default(1)
+  currentSemester     Int              @default(1)
+  currentAcademicYear Int
+  enrollmentYear      Int
+  email               String?          @unique
+  verified            Boolean          @default(false)
+  mentorId            String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  mentor              User?            @relation("AssignedStudents", fields: [mentorId], references: [id])
+  semesterRecords     SemesterRecord[]
+
+  @@index([mentorId])
+}
+
+model SemesterRecord {
+  id           String   @id @default(uuid())
+  studentId    String
+  semester     Int
+  academicYear Int
+  sgpa         Float?
+  cgpa         Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  scores       Score[]
+  achievements Achievement[]
+  alerts       Alert[]
+  progressLogs ProgressLog[]
+
+  @@unique([studentId, semester, academicYear])
+  @@index([studentId])
+}
+
+model Subject {
+  id           String  @id @default(uuid())
+  name         String
+  code         String  @unique
+  department   String
+  academicYear Int
+  semester     Int     @default(1)
+  scores       Score[]
+}
+
+model Achievement {
+  id               String         @id @default(uuid())
+  semesterRecordId String
+  title            String
+  description      String?
+  date             DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+}
+
+model Score {
+  id               String         @id @default(uuid())
+  semesterRecordId String
+  subjectId        String
+  test1            Float?
+  test2            Float?
+  assignment       Float?
+  internalTotal    Float?
+  exam             Float?
+  finalScore       Float?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id])
+
+  @@unique([semesterRecordId, subjectId])
+}
+
+model Alert {
+  id               String         @id @default(uuid())
+  semesterRecordId String
+  type             String
+  severity         AlertSeverity
+  message          String
+  resolved         Boolean        @default(false)
+  timestamp        DateTime       @default(now())
+  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+
+  @@index([semesterRecordId])
+}
+
+model ProgressLog {
+  id               String         @id @default(uuid())
+  semesterRecordId String
+  mentorId         String
+  remark           String
+  date             DateTime       @default(now())
+  mentor           User           @relation(fields: [mentorId], references: [id])
+  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  MENTOR
+  ADMIN
+}
+
+enum AlertSeverity {
+  HIGH
+  MEDIUM
+  LOW
+}

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AMIS - Academic Mentor Intelligence System</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="icon" href="/assets/logoo.png">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==================== LANDING VIEW ==================== -->
+  <div id="landing-view" class="view-section active">
+    <nav class="navbar">
+      <div class="logo">
+        <img src="/assets/logo1.png" alt="amis logo" style="height: 50px; width: 50px; margin-bottom: -5px;">
+        Academic Mentor Intelligence System
+      </div>
+      <div class="nav-links">
+        <button class="btn btn-outline" onclick="app.navigateTo('login')">Login</button>
+        <button class="btn btn-primary" onclick="app.navigateTo('signup')">Sign Up</button>
+      </div>
+    </nav>
+    <header class="hero">
+      <div class="hero-content">
+        <h1>Transform Academic Data into Actionable Insights</h1>
+        <p>A professional intelligence system designed for HODs and Mentors to track, analyze, and improve student performance.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" onclick="app.navigateTo('login')">Get Started</button>
+        </div>
+      </div>
+    </header>
+    <section class="features">
+      <div class="feature-card">
+        <i class="fa-solid fa-chart-line"></i>
+        <h3>Performance Analytics</h3>
+        <p>Deep dive into student metrics with interactive charts.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fa-solid fa-users"></i>
+        <h3>Mentor Management</h3>
+        <p>Efficiently assign and manage mentors and mentees.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fa-solid fa-bell"></i>
+        <h3>Early Alerts</h3>
+        <p>Automated alerts for at-risk students.</p>
+      </div>
+    </section>
+    <footer class="footer">
+      <p>Empowering smarter mentoring through data-driven insights and performance analytics.</p>
+      <p>👥 Team: Vinaya • Tayibba • Prachi • Saman</p>
+      <p>&copy; 2026 Academic Mentor Intelligence System. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- ==================== AUTH VIEW (LOGIN / SIGNUP) ==================== -->
+  <div id="auth-view" class="view-section">
+    <div class="auth-container">
+      <div class="auth-card" id="login-section">
+        <h2>Welcome Back</h2>
+        <p>Sign in to your AMIS account</p>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email or Username</label>
+            <input type="text" id="login-email" required placeholder="name@institution.edu">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label for="login-role">Select Role</label>
+            <select id="login-role" required>
+              <option value="HOD">HOD</option>
+              <option value="Mentor">Mentor</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
+        <p class="auth-switch">Don't have an account? <span onclick="app.toggleAuthMode('signup')">Sign up</span></p>
+        <button class="btn btn-link btn-full" style="margin-top: 1rem" onclick="app.navigateTo('landing')">Back to Home</button>
+      </div>
+
+      <div class="auth-card d-none" id="signup-section">
+        <h2>Create Account</h2>
+        <p>Join the AMIS platform</p>
+        <form id="signup-form">
+          <div class="form-group">
+            <label for="signup-name">Full Name</label>
+            <input type="text" id="signup-name" required placeholder="Dr. John Doe">
+          </div>
+          <div class="form-group">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" required placeholder="name@institution.edu">
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" required placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label for="signup-role">Select Role</label>
+            <select id="signup-role" required>
+              <option value="HOD">HOD</option>
+              <option value="Mentor">Mentor</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Sign Up</button>
+        </form>
+        <p class="auth-switch">Already have an account? <span onclick="app.toggleAuthMode('login')">Login</span></p>
+        <button class="btn btn-link btn-full" style="margin-top: 1rem" onclick="app.navigateTo('landing')">Back to Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DASHBOARD VIEW ==================== -->
+  <div id="dashboard-view" class="view-section dashboard-layout">
+    <aside class="sidebar" id="dashboard-sidebar">
+      <div class="sidebar-header">
+        <h2>AMIS</h2>
+      </div>
+      <ul class="sidebar-nav" id="sidebar-nav-links">
+        <!-- Injected via JS based on role -->
+      </ul>
+      <div class="sidebar-footer">
+        <button class="btn btn-outline btn-full" onclick="app.logout()"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-search">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" placeholder="Search...">
+        </div>
+        <div class="topbar-user">
+          <div class="alerts-icon"><i class="fa-solid fa-bell"></i></div>
+          <div class="user-info">
+            <span id="user-greeting">Welcome, User</span>
+            <small id="user-role-badge" class="badge">Role</small>
+          </div>
+          <div class="user-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-body" id="dashboard-content-body">
+        
+        <!-- HOD DASHBOARD -->
+        <div id="hod-dashboard" class="role-dashboard d-none">
+          <div class="page-header">
+            <h2>HOD Overview</h2>
+            <p>Department performance and alerts summary</p>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary"><i class="fa-solid fa-user-graduate"></i></div>
+              <div class="stat-details">
+                <h3>Total Students</h3>
+                <p id="hod-total-students">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon bg-danger-light text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="stat-details">
+                <h3>At-Risk Students</h3>
+                <p id="hod-at-risk">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon bg-success-light text-success"><i class="fa-solid fa-award"></i></div>
+              <div class="stat-details">
+                <h3>Top Performers</h3>
+                <p id="hod-top-performers">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon bg-info-light text-info"><i class="fa-solid fa-chalkboard-user"></i></div>
+              <div class="stat-details">
+                <h3>Active Mentors</h3>
+                <p id="hod-active-mentors">0</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-section mt-4">
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Student Performance Trends</h3>
+              </div>
+              <div class="card-body">
+                <canvas id="hodPerformanceChart"></canvas>
+              </div>
+            </div>
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Mentorship Alert Summary</h3>
+              </div>
+              <div class="card-body">
+                <canvas id="hodAlertsChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-4 table-card">
+            <div class="card-header flex-between">
+              <h3>All Students Overview</h3>
+              <div class="table-actions">
+                <select id="hod-filter-status" onchange="app.renderHODStudentTable()">
+                  <option value="all">All Statuses</option>
+                  <option value="high">Critical (High Alert)</option>
+                  <option value="medium">Warning (Medium Alert)</option>
+                  <option value="low">Good (Low Alert)</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table" id="hod-students-table">
+                  <thead>
+                    <tr>
+                      <th>USN</th>
+                      <th>Name</th>
+                      <th>Semester</th>
+                      <th>Mentor</th>
+                      <th>CGPA</th>
+                      <th>Status Alerts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MENTOR DASHBOARD -->
+        <div id="mentor-dashboard" class="role-dashboard d-none">
+          <div class="page-header flex-between">
+            <div>
+              <h2>Mentor Workspace</h2>
+              <p>Manage your assigned mentees and track progress</p>
+            </div>
+            <button class="btn btn-primary" onclick="app.showAddStudentModal()"><i class="fa-solid fa-plus"></i> Add Student</button>
+          </div>
+
+          <!-- Alert Summary Panel -->
+          <div class="alerts-panel mt-4 card">
+            <div class="card-header">
+              <h3>My Alerts <span class="badge bg-danger" id="mentor-high-alerts-count">0</span></h3>
+            </div>
+            <div class="card-body" id="mentor-alerts-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <div class="card mt-4 table-card">
+            <div class="card-header">
+              <h3>My Assigned Students</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table" id="mentor-students-table">
+                  <thead>
+                    <tr>
+                      <th>USN</th>
+                      <th>Name</th>
+                      <th>Sem</th>
+                      <th>Attendance</th>
+                      <th>CGPA</th>
+                      <th>Status Logs</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MOdals -->
+  <div id="add-student-modal" class="modal d-none">
+    <div class="modal-content card">
+      <div class="modal-header flex-between border-bottom">
+        <h3>Add Mentee manually</h3>
+        <button class="btn-icon" onclick="app.closeModals()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="add-student-form">
+          <div class="form-group">
+            <label>Student Name</label>
+            <input type="text" id="add-stu-name" required>
+          </div>
+          <div class="form-group">
+            <label>USN</label>
+            <input type="text" id="add-stu-usn" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Semester</label>
+              <input type="number" id="add-stu-sem" min="1" max="8" required>
+            </div>
+            <div class="form-group flex-1">
+              <label>CGPA</label>
+              <input type="number" step="0.01" id="add-stu-cgpa" required>
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <button type="submit" class="btn btn-primary btn-full">Save Student</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

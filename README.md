@@ -124,11 +124,6 @@ Student portal
 Email alerts
 SGPA/CGPA analytics
 Exportable reports
-Team Members
-Vinaya
-Tayibba
-Prachia
-Saman
-Conclusion
 
+Conclusion:
 AMIS is designed to modernize academic mentor–student management by combining semester-wise academic tracking, intelligent analytics, and centralized dashboards into a single professional platform. The system improves mentor efficiency, enables proactive academic monitoring, and provides institutions with actionable academic insights.

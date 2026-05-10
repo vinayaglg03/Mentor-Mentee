@@ -24,9 +24,12 @@ export const getAssignedStudents = async (req, res) => {
       include: {
         semesterRecords: {
           orderBy: { semester: 'desc' },
-          take: 1,
           include: { 
-            alerts: { where: { resolved: false } } 
+            alerts: { where: { resolved: false } },
+            progressLogs: {
+              orderBy: { date: 'desc' },
+              include: { mentor: { select: { name: true } } }
+            }
           }
         }
       }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, Plus, BookOpen, Eye, PlusCircle, Users } from 'lucide-react';
+import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
 
 const MentorDashboard = () => {
@@ -15,6 +15,9 @@ const MentorDashboard = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
+  
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
+  const [newLogText, setNewLogText] = useState('');
   
   const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({ 
@@ -46,6 +49,22 @@ const MentorDashboard = () => {
       setUnassigned(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const toggleRow = (id) => {
+    setExpandedStudentId(prev => prev === id ? null : id);
+    setNewLogText('');
+  };
+
+  const handleAddLog = async (studentId, semesterRecordId) => {
+    if (!newLogText.trim() || !semesterRecordId) return;
+    try {
+      await api.post('/mentors/logs', { studentId, semesterRecordId, remark: newLogText });
+      setNewLogText('');
+      fetchStudents();
+    } catch (err) {
+      alert("Failed to add log");
     }
   };
 
@@ -220,36 +239,92 @@ const MentorDashboard = () => {
                 </thead>
                 <tbody>
                   {(filteredStudents || [])?.map(student => (
-                    <tr key={student.id}>
-                      <td><strong>{student.rollNumber}</strong></td>
-                      <td>{student.name}</td>
-                      <td>{student.department}</td>
-                      <td>Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
-                      <td>
-                        {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
-                          <span className="alert-pill alert-high">
-                            {student.semesterRecords[0].alerts.length} Active
-                          </span>
-                        ) : (
-                          <span className="alert-pill alert-low">Clear</span>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn-icon" onClick={() => navigate(`/student/${student.id}`)} title="View Longitudinal Profile">
-                            <Eye size={18} />
-                          </button>
-                          <button className="btn-icon" onClick={() => openEditStudent(student)} title="Edit Student">
-                            <PlusCircle size={18} />
-                          </button>
-                          {user?.role === 'ADMIN' && (
-                            <button className="btn-icon" onClick={() => handleDeleteStudent(student.id)} title="Delete Student" style={{ color: 'var(--danger)' }}>
-                              &times;
-                            </button>
+                    <React.Fragment key={student.id}>
+                      <tr onClick={() => toggleRow(student.id)} style={{ cursor: 'pointer' }}>
+                        <td><strong>{student.rollNumber}</strong></td>
+                        <td>{student.name}</td>
+                        <td>{student.department}</td>
+                        <td>Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
+                        <td>
+                          {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
+                            <span className="alert-pill alert-high">
+                              {student.semesterRecords[0].alerts.length} Active
+                            </span>
+                          ) : (
+                            <span className="alert-pill alert-low">Clear</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${student.id}`); }} title="View Longitudinal Profile">
+                              <Eye size={18} />
+                            </button>
+                            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); toggleRow(student.id); }} title="Toggle Logs">
+                              {expandedStudentId === student.id ? <ChevronDown size={18} /> : <MessageSquare size={18} />}
+                            </button>
+                            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); openEditStudent(student); }} title="Edit Student">
+                              <PlusCircle size={18} />
+                            </button>
+                            {user?.role === 'ADMIN' && (
+                              <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }} title="Delete Student" style={{ color: 'var(--danger)' }}>
+                                &times;
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedStudentId === student.id && (
+                        <tr className="expanded-row-bg">
+                          <td colSpan="6" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                            <div style={{ display: 'flex', gap: '2rem' }}>
+                              <div style={{ flex: 1 }}>
+                                <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <MessageSquare size={16} /> Progress Logs History
+                                </h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  {(student.semesterRecords || []).map(record => (
+                                    <div key={record.id} className="card" style={{ padding: '1rem', background: 'white' }}>
+                                      <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--c-primary)' }}>Semester {record.semester}</h5>
+                                      {(record.progressLogs || []).length > 0 ? (
+                                        <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--c-darkest)', fontSize: '14px' }}>
+                                          {(record.progressLogs || []).map(log => (
+                                            <li key={log.id} style={{ marginBottom: '0.5rem' }}>
+                                              {log?.remark} <span className="text-muted" style={{ fontSize: '11px', marginLeft: '0.5rem' }}>{new Date(log?.date).toLocaleDateString()}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>No logs recorded for this semester.</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div style={{ width: '300px' }}>
+                                <div className="card" style={{ padding: '1rem', background: 'white', position: 'sticky', top: '1rem' }}>
+                                  <h5 style={{ margin: '0 0 1rem 0' }}>Add Log (Sem {student.semesterRecords?.[0]?.semester || '?'})</h5>
+                                  <textarea 
+                                    className="input-control" 
+                                    style={{ width: '100%', minHeight: '80px', marginBottom: '1rem', padding: '0.5rem', resize: 'vertical' }} 
+                                    placeholder="Enter remark..."
+                                    value={newLogText}
+                                    onChange={(e) => setNewLogText(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  ></textarea>
+                                  <button 
+                                    className="btn btn-primary btn-full" 
+                                    onClick={(e) => { e.stopPropagation(); handleAddLog(student.id, student.semesterRecords?.[0]?.id); }}
+                                    disabled={!student.semesterRecords?.[0]?.id}
+                                  >
+                                    Save Log
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>

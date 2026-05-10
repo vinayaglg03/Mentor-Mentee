@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye } from 'lucide-react';
+import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye, ChevronDown, MessageSquare } from 'lucide-react';
 import StatCard from '../components/StatCard';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
@@ -19,6 +19,12 @@ const HODDashboard = () => {
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
+
+  const toggleRow = (id) => {
+    setExpandedStudentId(prev => prev === id ? null : id);
+  };
 
   useEffect(() => {
     fetchData();
@@ -209,34 +215,72 @@ const HODDashboard = () => {
               </thead>
               <tbody>
                 {(filtered || [])?.map(s => (
-                  <tr key={s.id}>
-                    <td><strong>{s.rollNumber}</strong></td>
-                    <td>{s.name}</td>
-                    <td>Sem {s.semesterRecords?.[0]?.semester || s.currentSemester}</td>
-                    <td>
-                      {(s.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
-                        <span className="alert-pill alert-high">{s.semesterRecords[0].alerts.length} Active</span>
-                      ) : (
-                        <span className="alert-pill alert-low">On Track</span>
-                      )}
-                    </td>
-                    <td>
-                      <select 
-                        className="input-control" 
-                        style={{ padding: '0.2rem 0.5rem', fontSize: '12px' }}
-                        value={s.mentor?.id || ''} 
-                        onChange={(e) => handleAssignMentor(s.id, e.target.value)}
-                      >
-                        <option value="">-- Unassigned --</option>
-                        {(mentors || [])?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      <button className="btn-icon" onClick={() => navigate(`/student/${s.id}`)} title="View Longitudinal Profile">
-                        <Eye size={18} />
-                      </button>
-                    </td>
-                  </tr>
+                  <React.Fragment key={s.id}>
+                    <tr onClick={() => toggleRow(s.id)} style={{ cursor: 'pointer' }}>
+                      <td><strong>{s.rollNumber}</strong></td>
+                      <td>{s.name}</td>
+                      <td>Sem {s.semesterRecords?.[0]?.semester || s.currentSemester}</td>
+                      <td>
+                        {(s.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
+                          <span className="alert-pill alert-high">{s.semesterRecords[0].alerts.length} Active</span>
+                        ) : (
+                          <span className="alert-pill alert-low">On Track</span>
+                        )}
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <select 
+                          className="input-control" 
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '12px' }}
+                          value={s.mentor?.id || ''} 
+                          onChange={(e) => handleAssignMentor(s.id, e.target.value)}
+                        >
+                          <option value="">-- Unassigned --</option>
+                          {(mentors || [])?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${s.id}`); }} title="View Longitudinal Profile">
+                            <Eye size={18} />
+                          </button>
+                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); toggleRow(s.id); }} title="Toggle Logs">
+                            {expandedStudentId === s.id ? <ChevronDown size={18} /> : <MessageSquare size={18} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedStudentId === s.id && (
+                      <tr className="expanded-row-bg">
+                        <td colSpan="6" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', gap: '2rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <MessageSquare size={16} /> Progress Logs History
+                              </h4>
+                              <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                                {(s.semesterRecords || []).map(record => (
+                                  <div key={record.id} className="card" style={{ padding: '1rem', background: 'white', minWidth: '300px', flex: 1 }}>
+                                    <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--c-primary)' }}>Semester {record.semester}</h5>
+                                    {(record.progressLogs || []).length > 0 ? (
+                                      <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--c-darkest)', fontSize: '14px' }}>
+                                        {(record.progressLogs || []).map(log => (
+                                          <li key={log.id} style={{ marginBottom: '0.5rem' }}>
+                                            {log?.remark} <br/><span className="text-muted" style={{ fontSize: '11px' }}>{new Date(log?.date).toLocaleDateString()} - {log.mentor?.name}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>No logs recorded for this semester.</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

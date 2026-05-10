@@ -103,6 +103,60 @@ const StudentDetail = () => {
     }
   };
 
+  const progressionChartData = useMemo(() => {
+    if (!student?.semesterRecords || student.semesterRecords.length === 0) return null;
+    
+    // Sort ascending for chronological trend
+    const chronologicalRecords = [...student.semesterRecords].sort((a, b) => a.semester - b.semester);
+    
+    const labels = [];
+    const averages = [];
+    
+    chronologicalRecords.forEach(record => {
+      labels.push(`Sem ${record.semester}`);
+      const scores = record.scores || [];
+      if (scores.length > 0) {
+        const sum = scores.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
+        averages.push(sum / scores.length);
+      } else {
+        averages.push(null);
+      }
+    });
+
+    if (averages.every(avg => avg === null)) return null;
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Average Score',
+          data: averages,
+          borderColor: '#4696DA',
+          backgroundColor: 'rgba(70, 150, 218, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#4696DA',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+        }
+      ]
+    };
+  }, [student]);
+
+  const progressionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
+    },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' } },
+      x: { grid: { display: false } }
+    }
+  };
+
   const handleLogSubmit = async (e) => {
     e.preventDefault();
     if (!newLog.trim() || !selectedSemesterId) return;
@@ -231,6 +285,21 @@ const StudentDetail = () => {
           </div>
         </div>
 
+        <div className="card mb-4" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h3><TrendingUp size={18} /> Academic Progression</h3>
+          </div>
+          <div className="card-body" style={{ height: '300px' }}>
+            {!progressionChartData || !progressionChartData.labels || progressionChartData.labels.length === 0 ? (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">
+                No academic data available yet
+              </div>
+            ) : (
+              <Line data={progressionChartData} options={progressionOptions} />
+            )}
+          </div>
+        </div>
+
         <AnimatePresence mode="wait">
           {selectedRecord ? (
             <motion.div 
@@ -333,10 +402,10 @@ const StudentDetail = () => {
                         <button type="submit" className="btn btn-primary"><Send size={16} /></button>
                       </form>
                       <div className="logs-list">
-                        {selectedRecord.logs?.map(log => (
+                        {(selectedRecord.progressLogs || []).map(log => (
                           <div key={log.id} className="log-entry">
-                            <span className="log-meta text-muted">{new Date(log.timestamp).toLocaleDateString()}</span>
-                            <p>{log.remark}</p>
+                            <span className="log-meta text-muted">{new Date(log.date).toLocaleDateString()}</span>
+                            <p>{log?.remark}</p>
                           </div>
                         ))}
                       </div>

@@ -8,9 +8,12 @@ export const getAllStudents = async (req, res) => {
         mentor: { select: { id: true, name: true } },
         semesterRecords: {
           orderBy: { semester: 'desc' },
-          take: 1,
           include: {
-            alerts: { where: { resolved: false } }
+            alerts: { where: { resolved: false } },
+            progressLogs: {
+              orderBy: { date: 'desc' },
+              include: { mentor: { select: { name: true } } }
+            }
           }
         }
       },

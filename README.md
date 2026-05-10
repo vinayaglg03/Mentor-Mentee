@@ -1,4 +1,4 @@
-# 🚀 Mentor-Mentee Matching Platform
+# Academic Mentor Intelligence System (AMIS)
 
 A modern web application that connects mentors and mentees based on their expertise, interests, and goals. This platform facilitates knowledge sharing, career guidance, and personal development through intelligent matching and seamless communication.
 

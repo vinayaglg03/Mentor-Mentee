@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Set VITE_API_URL when building/deploying (e.g. https://your-api.onrender.com/api)
+const baseURL =
+  import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') ||
+  'http://localhost:5000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`,
 });
 
 // Request interceptor for API calls

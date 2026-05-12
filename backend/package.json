@@ -2,13 +2,13 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "type": "module",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+"scripts": {
+  "dev": "nodemon index.js",
+  "build": "tsc",
+  "start": "node index.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -23,6 +23,10 @@
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "prisma": "^7.7.0"
+    "@types/node": "^25.7.0",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.7.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }

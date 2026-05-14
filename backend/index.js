@@ -9,6 +9,7 @@ import analyticsRoutes from './src/routes/analytics.js';
 import alertRoutes from './src/routes/alerts.js';
 import subjectRoutes from './src/routes/subjects.js';
 import hodRoutes from './src/routes/hod.js';
+import cors from "cors";
 
 dotenv.config();
 
@@ -31,6 +32,11 @@ app.use('/api/hod', hodRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
+
+app.use(cors({
+  origin: "https://amis-frontend.onrender.com",
+  credentials: true
+}));
 
 // Error handling backend middleware
 app.use((err, req, res, next) => {

@@ -9,7 +9,6 @@ import analyticsRoutes from './src/routes/analytics.js';
 import alertRoutes from './src/routes/alerts.js';
 import subjectRoutes from './src/routes/subjects.js';
 import hodRoutes from './src/routes/hod.js';
-import cors from "cors";
 
 dotenv.config();
 

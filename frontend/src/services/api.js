@@ -1,9 +1,18 @@
 import axios from 'axios';
 
-// Set VITE_API_URL when building/deploying (e.g. https://your-api.onrender.com/api)
-const baseURL =
-  import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') ||
-  import.meta.env.VITE_API_URL;
+// Set VITE_API_URL when building/deploying (e.g. https://your-api.onrender.com)
+const DEFAULT_API_URL = 'http://localhost:5000';
+
+const configuredURL = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '');
+
+if (!configuredURL) {
+  console.warn(
+    `VITE_API_URL is not set - falling back to ${DEFAULT_API_URL}. ` +
+    'Create frontend/.env from .env.example before deploying.'
+  );
+}
+
+const baseURL = configuredURL || DEFAULT_API_URL;
 
 const api = axios.create({
   baseURL: baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`,

@@ -16,6 +16,7 @@ import subjectRoutes from './routes/subjects.js';
 import hodRoutes from './routes/hod.js';
 import adminRoutes from './routes/admin.js';
 import importRoutes from './routes/import.js';
+import attendanceRoutes from './routes/attendance.js';
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });

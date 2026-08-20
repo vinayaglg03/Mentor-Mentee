@@ -19,6 +19,11 @@ const IMPORT_TYPES = [
     label: 'Marks',
     blurb: 'CIE, assignment and exam marks per student per subject. Alerts are raised automatically.',
   },
+  {
+    key: 'attendance',
+    label: 'Attendance',
+    blurb: 'Classes held and attended per subject. Below 75% raises a high alert.',
+  },
 ];
 
 const ACCEPT = '.xlsx,.csv';

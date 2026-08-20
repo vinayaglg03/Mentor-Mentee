@@ -157,3 +157,18 @@
 .marks-failed {
   color: var(--danger);
 }
+
+.attendance-critical {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.attendance-warning {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.attendance-ok {
+  color: #047857;
+  font-weight: 600;
+}

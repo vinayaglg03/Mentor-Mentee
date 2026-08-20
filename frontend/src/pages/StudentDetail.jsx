@@ -8,11 +8,20 @@ import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck
 } from 'lucide-react';
 import './StudentDetail.css';
+import './MarksEntry.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
+
+// Matches the thresholds the alert engine uses.
+const attendanceClass = (percent) => {
+  if (percent === null || percent === undefined) return '';
+  if (percent < 75) return 'attendance-critical';
+  if (percent < 85) return 'attendance-warning';
+  return 'attendance-ok';
+};
 
 const StudentDetail = () => {
   const { user } = useAuth();
@@ -284,8 +293,10 @@ const StudentDetail = () => {
             <Trophy size={20} color="var(--info)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
-            <label>Credits Earned</label>
-            <div className="value">{(selectedRecord?.scores?.length || 0) * 4}</div>
+            <label>Attendance</label>
+            <div className={`value ${attendanceClass(selectedRecord?.attendancePercent)}`}>
+              {selectedRecord?.attendancePercent == null ? '—' : `${selectedRecord.attendancePercent}%`}
+            </div>
             <Book size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
         </div>
@@ -358,6 +369,49 @@ const StudentDetail = () => {
                 </div>
 
                 <div className="right-col">
+                  <div className="card mb-4">
+                    <div className="card-header">
+                      <h3><CalendarCheck size={18} /> Attendance by Subject</h3>
+                    </div>
+                    <div className="card-body">
+                      {(selectedRecord?.attendance || []).length === 0 ? (
+                        <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+                          No attendance recorded for this semester yet.
+                        </p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Held</th>
+                                <th>Attended</th>
+                                <th>Percentage</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(selectedRecord.attendance || []).map(row => {
+                                const percent = row.classesHeld > 0
+                                  ? Math.round((row.classesAttended / row.classesHeld) * 1000) / 10
+                                  : null;
+                                return (
+                                  <tr key={row.id}>
+                                    <td><strong>{row.subject?.code}</strong> {row.subject?.name}</td>
+                                    <td>{row.classesHeld}</td>
+                                    <td>{row.classesAttended}</td>
+                                    <td className={attendanceClass(percent)}>
+                                      {percent === null ? '—' : `${percent}%`}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="card mb-4">
                     <div className="card-header">
                       <h3><AlertCircle size={18} /> Intelligence Alerts</h3>

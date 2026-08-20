@@ -4,6 +4,15 @@ import api from '../services/api';
 import { useAuth } from '../context/useAuth';
 import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
+import './MarksEntry.css';
+
+// Matches the thresholds the alert engine uses.
+const attendanceClass = (percent) => {
+  if (percent === null || percent === undefined) return '';
+  if (percent < 75) return 'attendance-critical';
+  if (percent < 85) return 'attendance-warning';
+  return 'attendance-ok';
+};
 
 const MentorDashboard = () => {
   const { user } = useAuth();
@@ -245,6 +254,7 @@ const MentorDashboard = () => {
                     <th>Full Name</th>
                     <th>Department</th>
                     <th>Current Academic State</th>
+                    <th>Attendance</th>
                     <th>Alert Status</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
@@ -257,6 +267,11 @@ const MentorDashboard = () => {
                         <td>{student.name}</td>
                         <td>{student.department}</td>
                         <td>Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
+                        <td className={attendanceClass(student.semesterRecords?.[0]?.attendancePercent)}>
+                          {student.semesterRecords?.[0]?.attendancePercent == null
+                            ? <span className="text-muted">—</span>
+                            : `${student.semesterRecords[0].attendancePercent}%`}
+                        </td>
                         <td>
                           {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
                             <span className="alert-pill alert-high">
@@ -287,7 +302,7 @@ const MentorDashboard = () => {
                       </tr>
                       {expandedStudentId === student.id && (
                         <tr className="expanded-row-bg">
-                          <td colSpan="6" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                          <td colSpan="7" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <div style={{ display: 'flex', gap: '2rem' }}>
                               <div style={{ flex: 1 }}>
                                 <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -340,7 +355,7 @@ const MentorDashboard = () => {
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                         No mentees found.
                       </td>
                     </tr>

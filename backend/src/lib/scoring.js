@@ -110,6 +110,81 @@ export const buildScoreAlerts = ({ semester, score }) => {
   return alerts;
 };
 
+// --- Attendance ---------------------------------------------------------
+// Colleges run on eligibility thresholds: below 75% is usually a bar on
+// sitting the exam, 75-85% is the warning band.
+export const ATTENDANCE_CRITICAL = 75;
+export const ATTENDANCE_WARNING = 85;
+
+export const attendancePercent = ({ classesHeld, classesAttended }) =>
+  classesHeld > 0 ? Math.round((classesAttended / classesHeld) * 1000) / 10 : null;
+
+export const buildAttendanceAlerts = ({ subjectCode, classesHeld, classesAttended }) => {
+  const percent = attendancePercent({ classesHeld, classesAttended });
+  if (percent === null) return [];
+
+  const where = subjectCode ? ` in ${subjectCode}` : '';
+
+  if (percent < ATTENDANCE_CRITICAL) {
+    return [{
+      type: 'LOW_ATTENDANCE',
+      severity: 'HIGH',
+      message: `Attendance${where} is ${percent}% (below ${ATTENDANCE_CRITICAL}%).`,
+    }];
+  }
+
+  if (percent < ATTENDANCE_WARNING) {
+    return [{
+      type: 'LOW_ATTENDANCE',
+      severity: 'MEDIUM',
+      message: `Attendance${where} is ${percent}% (below ${ATTENDANCE_WARNING}%).`,
+    }];
+  }
+
+  return [];
+};
+
+// Upserts one subject's attendance and raises the alerts it implies.
+export const saveAttendance = async (client, { semesterRecordId, subjectId, subjectCode, classesHeld, classesAttended, asOfDate }) => {
+  const data = {
+    classesHeld,
+    classesAttended,
+    ...(asOfDate ? { asOfDate } : {}),
+  };
+
+  const attendance = await client.attendance.upsert({
+    where: { semesterRecordId_subjectId: { semesterRecordId, subjectId } },
+    update: data,
+    create: { semesterRecordId, subjectId, ...data },
+  });
+
+  await persistAlerts(
+    client,
+    semesterRecordId,
+    buildAttendanceAlerts({ subjectCode, classesHeld, classesAttended })
+  );
+
+  return attendance;
+};
+
+export const validateAttendance = ({ classesHeld, classesAttended }) => {
+  const errors = [];
+  const held = Number(classesHeld);
+  const attended = Number(classesAttended);
+
+  if (!Number.isInteger(held) || held < 0) {
+    errors.push('Classes held must be a whole number of 0 or more.');
+  }
+  if (!Number.isInteger(attended) || attended < 0) {
+    errors.push('Classes attended must be a whole number of 0 or more.');
+  }
+  if (Number.isInteger(held) && Number.isInteger(attended) && attended > held) {
+    errors.push('Classes attended cannot exceed classes held.');
+  }
+
+  return errors;
+};
+
 // Writes alerts that are not already open with the same message. `client` is
 // either the prisma singleton or a transaction client.
 export const persistAlerts = async (client, semesterRecordId, alerts) => {

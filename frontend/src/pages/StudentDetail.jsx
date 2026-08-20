@@ -122,28 +122,18 @@ const StudentDetail = () => {
     // Sort ascending for chronological trend
     const chronologicalRecords = [...student.semesterRecords].sort((a, b) => a.semester - b.semester);
     
-    const labels = [];
-    const averages = [];
-    
-    chronologicalRecords.forEach(record => {
-      labels.push(`Sem ${record.semester}`);
-      const scores = record.scores || [];
-      if (scores.length > 0) {
-        const sum = scores.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
-        averages.push(sum / scores.length);
-      } else {
-        averages.push(null);
-      }
-    });
+    const labels = chronologicalRecords.map(record => `Sem ${record.semester}`);
+    const sgpa = chronologicalRecords.map(record => record.sgpa ?? null);
+    const cgpa = chronologicalRecords.map(record => record.cgpa ?? null);
 
-    if (averages.every(avg => avg === null)) return null;
+    if (sgpa.every(value => value === null)) return null;
 
     return {
       labels,
       datasets: [
         {
-          label: 'Average Score',
-          data: averages,
+          label: 'SGPA',
+          data: sgpa,
           borderColor: '#4696DA',
           backgroundColor: 'rgba(70, 150, 218, 0.2)',
           fill: true,
@@ -152,20 +142,43 @@ const StudentDetail = () => {
           pointBorderColor: '#4696DA',
           pointBorderWidth: 2,
           pointRadius: 4,
+        },
+        {
+          label: 'CGPA',
+          data: cgpa,
+          borderColor: '#047857',
+          backgroundColor: 'rgba(4, 120, 87, 0.08)',
+          fill: false,
+          tension: 0.4,
+          borderDash: [6, 4],
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#047857',
+          pointBorderWidth: 2,
+          pointRadius: 3,
         }
       ]
     };
+  }, [student]);
+
+  // The cumulative figure stored against the most recent semester.
+  const currentCgpa = useMemo(() => {
+    const records = [...(student?.semesterRecords || [])]
+      .filter(record => record.cgpa !== null && record.cgpa !== undefined)
+      .sort((a, b) => (a.academicYear - b.academicYear) || (a.semester - b.semester));
+
+    return records.length > 0 ? records[records.length - 1].cgpa : null;
   }, [student]);
 
   const progressionOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 11 } } },
       tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
     },
     scales: {
-      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' } },
+      // Grade points, not marks.
+      y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' } },
       x: { grid: { display: false } }
     }
   };
@@ -276,9 +289,14 @@ const StudentDetail = () => {
 
         <div className="metrics-grid">
           <div className="card stat-card">
-            <label>GPA Prediction</label>
-            <div className="value">{((selectedRecord?.scores || []).reduce((a,b)=>a+(b.finalScore||0),0) / ((selectedRecord?.scores || []).length||1) / 10).toFixed(2)}</div>
+            <label>SGPA (Sem {selectedRecord?.semester ?? '—'})</label>
+            <div className="value">{selectedRecord?.sgpa ?? '—'}</div>
             <TrendingUp size={20} color="var(--success)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
+          </div>
+          <div className="card stat-card">
+            <label>Current CGPA</label>
+            <div className="value">{currentCgpa ?? '—'}</div>
+            <GraduationCap size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
             <label>Active Alerts</label>
@@ -303,7 +321,7 @@ const StudentDetail = () => {
 
         <div className="card mb-4" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h3><TrendingUp size={18} /> Academic Progression</h3>
+            <h3><TrendingUp size={18} /> SGPA and CGPA by Semester</h3>
           </div>
           <div className="card-body" style={{ height: '300px' }}>
             {!progressionChartData || !progressionChartData.labels || progressionChartData.labels.length === 0 ? (

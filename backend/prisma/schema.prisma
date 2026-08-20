@@ -161,6 +161,19 @@ model PendingImport {
   @@index([expiresAt])
 }
 
+// The grade scale is data, not code: colleges change it between regulation
+// schemes, and an ADMIN can edit the bands without a redeploy.
+model GradeBand {
+  id         String   @id @default(uuid())
+  label      String   @unique
+  minScore   Float
+  gradePoint Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([minScore])
+}
+
 enum Role {
   MENTOR
   ADMIN

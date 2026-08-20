@@ -68,6 +68,7 @@ model Subject {
   department   String
   academicYear Int
   semester     Int     @default(1)
+  credits      Int     @default(3)
   scores       Score[]
 }
 
@@ -121,6 +122,22 @@ model ProgressLog {
   date             DateTime       @default(now())
   mentor           User           @relation(fields: [mentorId], references: [id])
   semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+}
+
+// A parsed-but-not-yet-applied spreadsheet. Preview writes one, commit reads
+// it back and deletes it; anything older than expiresAt is swept away.
+model PendingImport {
+  id        String   @id @default(uuid())
+  type      String
+  userId    String
+  fileName  String
+  summary   Json
+  rows      Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 enum Role {

@@ -1,6 +1,6 @@
 import prisma from '../prismaClient.js';
 
-export const getHODAnalytics = async (req, res) => {
+export const getHODAnalytics = async (req, res, next) => {
   try {
     const totalStudents = await prisma.student.count({ where: { status: 'ACTIVE' } });
     const totalMentors = await prisma.user.count({ where: { role: 'MENTOR' } });
@@ -98,6 +98,6 @@ export const getHODAnalytics = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

@@ -2,7 +2,7 @@ import prisma from '../prismaClient.js';
 import { assertMentorHasCapacity } from '../lib/access.js';
 
 // GET all students across all years
-export const getAllStudents = async (req, res) => {
+export const getAllStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
       where: { status: 'ACTIVE' },
@@ -23,12 +23,12 @@ export const getAllStudents = async (req, res) => {
     });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
 // GET unassigned students
-export const getUnassignedStudents = async (req, res) => {
+export const getUnassignedStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
       where: { status: 'ACTIVE', mentorId: null },
@@ -36,7 +36,7 @@ export const getUnassignedStudents = async (req, res) => {
     });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
@@ -75,7 +75,7 @@ export const assignStudent = async (req, res, next) => {
 };
 
 // GET At-Risk Students Masterlist
-export const getAtRiskStudents = async (req, res) => {
+export const getAtRiskStudents = async (req, res, next) => {
   try {
     const atRisk = await prisma.student.findMany({
       where: {
@@ -101,12 +101,12 @@ export const getAtRiskStudents = async (req, res) => {
     });
     res.json(atRisk);
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
 // GET Top Performers Insight
-export const getTopPerformers = async (req, res) => {
+export const getTopPerformers = async (req, res, next) => {
   try {
     const studentsWithRecords = await prisma.student.findMany({
       where: { status: 'ACTIVE' },
@@ -136,12 +136,12 @@ export const getTopPerformers = async (req, res) => {
     const top10 = performance.sort((a, b) => b.averageScore - a.averageScore).slice(0, 10);
     res.json(top10);
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
 // GET all mentors
-export const getMentors = async (req, res) => {
+export const getMentors = async (req, res, next) => {
   try {
     const mentors = await prisma.user.findMany({
       where: { role: 'MENTOR' },
@@ -159,6 +159,6 @@ export const getMentors = async (req, res) => {
     }));
     res.json(mapped);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    next(error);
   }
 };

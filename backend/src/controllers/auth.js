@@ -13,7 +13,7 @@ const signToken = (user) =>
 // Public self-registration. Always creates an unapproved MENTOR:
 // the role is never taken from the request body, and an HOD must approve
 // the account before it can log in.
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
@@ -38,13 +38,12 @@ export const register = async (req, res) => {
       user: { id: user.id, email: user.email, role: user.role, approved: user.approved }
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
 // ADMIN-only user creation. This is how HODs and other mentors get accounts.
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -69,12 +68,11 @@ export const createUser = async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role, approved: user.approved }
     });
   } catch (error) {
-    console.error('User creation error:', error);
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
-export const getPendingUsers = async (req, res) => {
+export const getPendingUsers = async (req, res, next) => {
   try {
     const users = await prisma.user.findMany({
       where: { approved: false },
@@ -83,12 +81,11 @@ export const getPendingUsers = async (req, res) => {
     });
     res.json(users);
   } catch (error) {
-    console.error('Pending users error:', error);
-    res.status(500).json({ error: 'Server error' });
+    next(error);
   }
 };
 
-export const approveUser = async (req, res) => {
+export const approveUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await prisma.user.update({
@@ -98,12 +95,11 @@ export const approveUser = async (req, res) => {
     });
     res.json({ message: 'User approved successfully', user });
   } catch (error) {
-    console.error('Approve user error:', error);
-    res.status(500).json({ error: 'Server error' });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -134,12 +130,11 @@ export const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 
-export const me = async (req, res) => {
+export const me = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
@@ -147,7 +142,6 @@ export const me = async (req, res) => {
     });
     res.json(user);
   } catch (error) {
-    console.error('Me query error:', error);
-    res.status(500).json({ error: 'Server error' });
+    next(error);
   }
 };

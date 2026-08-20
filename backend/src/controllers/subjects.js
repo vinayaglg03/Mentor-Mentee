@@ -1,6 +1,6 @@
 import prisma from '../prismaClient.js';
 
-export const createSubject = async (req, res) => {
+export const createSubject = async (req, res, next) => {
   try {
     const { name, code, department, academicYear, semester } = req.body;
     
@@ -20,11 +20,11 @@ export const createSubject = async (req, res) => {
     });
     res.status(201).json(subject);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const updateSubject = async (req, res) => {
+export const updateSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, code, department, academicYear, semester } = req.body;
@@ -41,21 +41,21 @@ export const updateSubject = async (req, res) => {
     });
     res.json(subject);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const deleteSubject = async (req, res) => {
+export const deleteSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
     await prisma.subject.delete({ where: { id } });
     res.json({ message: 'Subject deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const getSubjects = async (req, res) => {
+export const getSubjects = async (req, res, next) => {
   try {
     const { department, academicYear } = req.query;
     const whereClause = {};
@@ -65,6 +65,6 @@ export const getSubjects = async (req, res) => {
     const subjects = await prisma.subject.findMany({ where: whereClause });
     res.json(subjects);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

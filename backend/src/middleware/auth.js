@@ -8,7 +8,9 @@ export const authenticateToken = (req, res, next) => {
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, config.jwtSecret, (err, user) => {
-    if (err) return res.sendStatus(403);
+    // A bad or expired token is an authentication problem (401), not an
+    // authorisation one - the client logs out and asks for credentials again.
+    if (err) return res.sendStatus(401);
     req.user = user;
     next();
   });
@@ -16,12 +18,6 @@ export const authenticateToken = (req, res, next) => {
 
 export const requireRole = (roles) => {
   return (req, res, next) => {
-    // Debug logging as requested
-    console.log('--- AUTH DEBUG ---');
-    console.log('Path:', req.path);
-    console.log('User from Token:', req.user);
-    console.log('Required Role(s):', roles);
-
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized: No user found in request' });
     }
@@ -32,14 +28,11 @@ export const requireRole = (roles) => {
       : userRole === roles;
 
     if (!isAllowed) {
-      console.log('Access Denied: Role mismatch');
-      return res.status(403).json({ 
-        error: `Forbidden: Requires ${Array.isArray(roles) ? roles.join(' or ') : roles} role`,
-        yourRole: userRole
+      return res.status(403).json({
+        error: `Forbidden: Requires ${Array.isArray(roles) ? roles.join(' or ') : roles} role`
       });
     }
 
-    console.log('Access Granted');
     next();
   };
 };

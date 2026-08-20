@@ -1,7 +1,7 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent, assertCanAccessSemesterRecord, assertMentorHasCapacity } from '../lib/access.js';
 
-export const getMentors = async (req, res) => {
+export const getMentors = async (req, res, next) => {
   try {
     const mentors = await prisma.user.findMany({
       where: { role: 'MENTOR' },
@@ -14,11 +14,11 @@ export const getMentors = async (req, res) => {
     });
     res.json(mentors);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const getAssignedStudents = async (req, res) => {
+export const getAssignedStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
       where: { status: 'ACTIVE', mentorId: req.user.id },
@@ -37,7 +37,7 @@ export const getAssignedStudents = async (req, res) => {
     });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

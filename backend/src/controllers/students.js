@@ -59,9 +59,7 @@ export const getStudentById = async (req, res, next) => {
   }
 };
 
-export const createStudent = async (req, res) => {
-  console.log('--- CREATE STUDENT REQUEST BODY ---');
-  console.log(req.body);
+export const createStudent = async (req, res, next) => {
   try {
     const { name, rollNumber, department, currentYear, currentSemester, currentAcademicYear, enrollmentYear, email, mentorId } = req.body;
     
@@ -72,53 +70,44 @@ export const createStudent = async (req, res) => {
       return res.status(400).json({ error: 'Student with this USN or Email already exists' });
     }
 
-    try {
-      const student = await prisma.$transaction(async (tx) => {
-        // Safe numeric parsing to avoid NaN
-        const cYear = parseInt(currentYear) || 1;
-        const cSem = parseInt(currentSemester) || 1;
-        const cAcadYear = parseInt(currentAcademicYear) || new Date().getFullYear();
-        const eYear = parseInt(enrollmentYear) || new Date().getFullYear();
+    const student = await prisma.$transaction(async (tx) => {
+      // Safe numeric parsing to avoid NaN
+      const cYear = parseInt(currentYear) || 1;
+      const cSem = parseInt(currentSemester) || 1;
+      const cAcadYear = parseInt(currentAcademicYear) || new Date().getFullYear();
+      const eYear = parseInt(enrollmentYear) || new Date().getFullYear();
 
-        const stdData = { 
-          name, 
-          rollNumber, 
-          department, 
-          currentYear: cYear, 
-          currentSemester: cSem,
-          currentAcademicYear: cAcadYear,
-          enrollmentYear: eYear, 
-          email: email || null,
-          mentorId: mentorId || (req.user.role === 'MENTOR' ? req.user.id : null)
-        };
+      const stdData = { 
+        name, 
+        rollNumber, 
+        department, 
+        currentYear: cYear, 
+        currentSemester: cSem,
+        currentAcademicYear: cAcadYear,
+        enrollmentYear: eYear, 
+        email: email || null,
+        mentorId: mentorId || (req.user.role === 'MENTOR' ? req.user.id : null)
+      };
 
-        console.log('--- PRISMA CREATE STUDENT DEBUG ---');
-        console.log('Data:', JSON.stringify(stdData, null, 2));
-
-        const std = await tx.student.create({
-          data: stdData
-        });
-
-        // Create initial semester record
-        await tx.semesterRecord.create({
-          data: {
-            studentId: std.id,
-            semester: cSem,
-            academicYear: cAcadYear
-          }
-        });
-
-        return std;
+      const std = await tx.student.create({
+        data: stdData
       });
 
-      res.status(201).json(student);
-    } catch (innerError) {
-      console.error('--- PRISMA TRANSACTION ERROR ---');
-      console.error(innerError);
-      throw innerError; // Rethrow to be caught by outer catch
-    }
+      // Create initial semester record
+      await tx.semesterRecord.create({
+        data: {
+          studentId: std.id,
+          semester: cSem,
+          academicYear: cAcadYear
+        }
+      });
+
+      return std;
+    });
+
+    res.status(201).json(student);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

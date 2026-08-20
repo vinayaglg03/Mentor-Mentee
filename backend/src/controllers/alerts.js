@@ -15,7 +15,7 @@ export const getStudentAlerts = async (req, res, next) => {
   }
 };
 
-export const getMentorAlerts = async (req, res) => {
+export const getMentorAlerts = async (req, res, next) => {
   try {
     const alerts = await prisma.alert.findMany({
       where: {
@@ -38,11 +38,11 @@ export const getMentorAlerts = async (req, res) => {
     
     res.json(flattened);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const getAllAlerts = async (req, res) => {
+export const getAllAlerts = async (req, res, next) => {
   try {
     const alerts = await prisma.alert.findMany({
       where: { semesterRecord: { student: { status: 'ACTIVE' } } },
@@ -61,7 +61,7 @@ export const getAllAlerts = async (req, res) => {
     
     res.json(flattened);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

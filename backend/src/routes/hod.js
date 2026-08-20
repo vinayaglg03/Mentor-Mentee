@@ -1,5 +1,7 @@
 import express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { assignStudentSchema } from '../schemas/hod.js';
 import { 
   getAllStudents,
   getUnassignedStudents,
@@ -16,7 +18,7 @@ router.use(authenticateToken, requireRole('ADMIN'));
 
 router.get('/students', getAllStudents);
 router.get('/students/unassigned', getUnassignedStudents);
-router.put('/students/:studentId/assign', assignStudent);
+router.put('/students/:studentId/assign', validate(assignStudentSchema), assignStudent);
 
 router.get('/analytics/at-risk', getAtRiskStudents);
 router.get('/analytics/top-performers', getTopPerformers);

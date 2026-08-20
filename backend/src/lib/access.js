@@ -23,6 +23,26 @@ const assertOwnership = (user, mentorId) => {
   if (mentorId !== user.id) throw new ForbiddenError();
 };
 
+// A mentor may not hold more mentees than their maxStudents cap allows.
+export async function assertMentorHasCapacity(mentorId) {
+  const mentor = await prisma.user.findUnique({
+    where: { id: mentorId },
+    select: { id: true, name: true, maxStudents: true, _count: { select: { students: true } } }
+  });
+
+  if (!mentor) throw new NotFoundError('Mentor not found.');
+
+  if (mentor._count.students >= mentor.maxStudents) {
+    const error = new Error(
+      `${mentor.name} already has ${mentor._count.students} students, which is their limit of ${mentor.maxStudents}.`
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  return mentor;
+}
+
 export async function assertCanAccessStudent(user, studentId) {
   if (!studentId) throw new NotFoundError('Student not found.');
 

@@ -1,5 +1,5 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent, assertCanAccessSemesterRecord } from '../lib/access.js';
+import { assertCanAccessStudent, assertCanAccessSemesterRecord, assertMentorHasCapacity } from '../lib/access.js';
 
 export const getMentors = async (req, res) => {
   try {
@@ -149,12 +149,14 @@ export const addAchievement = async (req, res, next) => {
   }
 };
 
-export const claimStudent = async (req, res) => {
+export const claimStudent = async (req, res, next) => {
   try {
     const { studentId } = req.body;
     const student = await prisma.student.findUnique({ where: { id: studentId } });
     if (!student) return res.status(404).json({ error: 'Student not found' });
     if (student.mentorId) return res.status(400).json({ error: 'Student is already assigned to a mentor.' });
+
+    await assertMentorHasCapacity(req.user.id);
 
     const updated = await prisma.student.update({
       where: { id: studentId },
@@ -163,6 +165,6 @@ export const claimStudent = async (req, res) => {
 
     res.json({ message: 'Successfully claimed student', student: updated });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

@@ -1,4 +1,5 @@
 import prisma from '../prismaClient.js';
+import { assertMentorHasCapacity } from '../lib/access.js';
 
 // GET all students across all years
 export const getAllStudents = async (req, res) => {
@@ -39,7 +40,7 @@ export const getUnassignedStudents = async (req, res) => {
 };
 
 // PUT Assign student to mentor
-export const assignStudent = async (req, res) => {
+export const assignStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
     const { mentorId } = req.body;
@@ -48,6 +49,16 @@ export const assignStudent = async (req, res) => {
       const mentor = await prisma.user.findUnique({ where: { id: mentorId } });
       if (!mentor || mentor.role !== 'MENTOR') {
         return res.status(400).json({ error: 'Valid mentor ID required' });
+      }
+
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { mentorId: true }
+      });
+      // Re-saving a student against the mentor they already have must not
+      // fail just because that mentor is at their cap.
+      if (student?.mentorId !== mentorId) {
+        await assertMentorHasCapacity(mentorId);
       }
     }
 
@@ -58,7 +69,7 @@ export const assignStudent = async (req, res) => {
 
     res.json({ message: 'Assignment updated successfully', student: updated });
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error.message });
+    next(error);
   }
 };
 

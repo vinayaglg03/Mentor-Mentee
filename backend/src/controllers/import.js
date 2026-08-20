@@ -60,6 +60,13 @@ export const preview = async (req, res, next) => {
 
     const { rows, errors } = await importer.validate({ rows: parsed, user: req.user, prisma });
 
+    // Show what the user typed for every column, plus anything the importer
+    // derived (student name, computed totals).
+    const rawByRow = new Map(parsed.map(row => [row.rowNumber, row.values]));
+    for (const row of rows) {
+      row.display = { ...(rawByRow.get(row.rowNumber) || {}), ...(row.display || {}) };
+    }
+
     const summary = {
       total: rows.length,
       toCreate: rows.filter(row => row.action === 'create').length,
@@ -85,7 +92,10 @@ export const preview = async (req, res, next) => {
       importId: pending.id,
       expiresAt: pending.expiresAt,
       fileName,
-      columns: importer.columns.map(({ key, header, required }) => ({ key, header, required })),
+      columns: [
+        ...importer.columns.map(({ key, header, required }) => ({ key, header, required })),
+        ...(importer.previewExtras || []),
+      ],
       rows,
       errors,
       summary,

@@ -12,6 +12,13 @@ export const columns = [
   { key: 'exam', header: 'Exam', required: false, example: 41 },
 ];
 
+// Extra read-only columns shown in the preview table.
+export const previewExtras = [
+  { key: 'studentName', header: 'Student' },
+  { key: 'internalTotal', header: 'Internal' },
+  { key: 'finalScore', header: 'Final' },
+];
+
 export const instructions = [
   'One row per student per subject.',
   'Roll Number must already exist in AMIS. Import students first if they do not.',

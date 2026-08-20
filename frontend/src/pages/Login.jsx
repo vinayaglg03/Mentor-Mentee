@@ -18,15 +18,16 @@ const Login = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('MENTOR');
   
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
 
     try {
@@ -40,15 +41,10 @@ const Login = () => {
           navigate('/mentor/dashboard');
         }
       } else {
-        await api.post('/auth/register', { name, email, password, role });
-        const { data } = await api.post('/auth/login', { email, password });
-        login(data.user, data.token);
-        
-        if (data.user.role === 'ADMIN') {
-          navigate('/hod/dashboard');
-        } else {
-          navigate('/mentor/dashboard');
-        }
+        await api.post('/auth/register', { name, email, password });
+        setIsLogin(true);
+        setPassword('');
+        setNotice('Registration received. Your account is awaiting approval by your HOD.');
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Authentication failed. Please try again.');
@@ -67,6 +63,7 @@ const Login = () => {
           </div>
 
           {error && <div className="error-alert">{error}</div>}
+          {notice && <div className="info-alert">{notice}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             {!isLogin && (
@@ -105,19 +102,6 @@ const Login = () => {
                 onChange={e => setPassword(e.target.value)}
                 required
               />
-            </div>
-
-            <div className="form-group">
-              <label>Select Role</label>
-              <select 
-                className="input-control" 
-                value={role}
-                onChange={e => setRole(e.target.value)}
-                required
-              >
-                <option value="MENTOR">Mentor</option>
-                <option value="ADMIN">HOD / Admin</option>
-              </select>
             </div>
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

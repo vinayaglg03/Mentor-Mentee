@@ -9,6 +9,7 @@ import analyticsRoutes from './src/routes/analytics.js';
 import alertRoutes from './src/routes/alerts.js';
 import subjectRoutes from './src/routes/subjects.js';
 import hodRoutes from './src/routes/hod.js';
+import adminRoutes from './src/routes/admin.js';
 
 const app = express();
 const PORT = config.port;
@@ -35,6 +36,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/hod', hodRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });

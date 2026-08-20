@@ -50,29 +50,6 @@ export const getStudentById = async (req, res, next) => {
 
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    // --- On Demand Inactivity Check (on current semester) ---
-    const currentRecord = student.semesterRecords[0];
-    if (currentRecord) {
-      const now = new Date();
-      const lastLogDate = currentRecord.progressLogs.length > 0 ? new Date(currentRecord.progressLogs[0].date) : new Date(currentRecord.createdAt);
-      const diffDays = (now - lastLogDate) / (1000 * 60 * 60 * 24);
-      
-      if (diffDays > 14) {
-        const hasInactiveAlert = currentRecord.alerts.some(a => a.type === 'INACTIVE' && !a.resolved);
-        if (!hasInactiveAlert) {
-          const newAlert = await prisma.alert.create({
-            data: {
-              semesterRecordId: currentRecord.id,
-              type: 'INACTIVE',
-              severity: 'HIGH',
-              message: `No progress logs recorded in the last 14 days for this semester.`
-            }
-          });
-          currentRecord.alerts.unshift(newAlert);
-        }
-      }
-    }
-
     res.json(student);
   } catch (error) {
     next(error);

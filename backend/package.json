@@ -8,7 +8,8 @@
     "postinstall": "prisma generate",
     "dev": "nodemon index.js",
     "build": "tsc",
-    "start": "node index.js"
+    "start": "node index.js",
+    "job:inactivity": "node src/jobs/inactivityCheck.js"
   },
   "keywords": [],
   "author": "",

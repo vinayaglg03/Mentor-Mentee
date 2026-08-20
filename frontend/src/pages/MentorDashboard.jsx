@@ -10,6 +10,7 @@ const MentorDashboard = () => {
   const [students, setStudents] = useState([]);
   const [unassigned, setUnassigned] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -31,24 +32,28 @@ const MentorDashboard = () => {
     fetchStudents();
   }, []);
 
+  const errorMessage = (err, fallback) => err.response?.data?.error || fallback;
+
   const fetchStudents = async () => {
     setLoading(true);
+    setPageError('');
     try {
       const { data } = await api.get('/mentors/students');
       setStudents(data);
     } catch (err) {
-      console.error(err);
+      setPageError(errorMessage(err, 'Could not load your mentees.'));
     } finally {
       setLoading(false);
     }
   };
 
   const fetchUnassigned = async () => {
+    setPageError('');
     try {
-      const { data } = await api.get('/hod/students/unassigned');
+      const { data } = await api.get('/mentors/students/unassigned');
       setUnassigned(data);
     } catch (err) {
-      console.error(err);
+      setPageError(errorMessage(err, 'Could not load unassigned students.'));
     }
   };
 
@@ -64,7 +69,7 @@ const MentorDashboard = () => {
       setNewLogText('');
       fetchStudents();
     } catch (err) {
-      alert("Failed to add log");
+      setPageError(errorMessage(err, 'Failed to add log.'));
     }
   };
 
@@ -74,7 +79,7 @@ const MentorDashboard = () => {
       setShowAssignModal(false);
       fetchStudents();
     } catch (err) {
-      alert("Failed to claim student");
+      setPageError(errorMessage(err, 'Failed to claim student.'));
     }
   };
 
@@ -169,6 +174,13 @@ const MentorDashboard = () => {
           </div>
         </div>
       </header>
+
+      {pageError && (
+        <div className="error-banner" role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderLeft: '4px solid var(--danger)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginBottom: '1.5rem', fontSize: '14px' }}>
+          <span>{pageError}</span>
+          <button className="btn-icon" onClick={() => setPageError('')} title="Dismiss" style={{ color: 'var(--danger)' }}>&times;</button>
+        </div>
+      )}
 
       <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setNewStudent({ name: '', rollNumber: '', department: '', currentYear: '1', currentSemester: '1', currentAcademicYear: new Date().getFullYear(), enrollmentYear: new Date().getFullYear(), email: '' }); setShowStudentModal(true); }}>

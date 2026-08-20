@@ -27,8 +27,10 @@ api.interceptors.request.use(
 api.interceptors.response.use((response) => {
   return response
 }, async function (error) {
-  if (error.response?.status === 401 || error.response?.status === 403) {
-    // Force logout on 401 or Invalid Token
+  // 401 means the session is gone, so log out. A 403 means the user is
+  // signed in but not allowed to do this one thing - the caller shows an
+  // inline error instead of being kicked out of the app.
+  if (error.response?.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';

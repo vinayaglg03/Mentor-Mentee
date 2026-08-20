@@ -41,6 +41,20 @@ export const getAssignedStudents = async (req, res) => {
   }
 };
 
+// Students that no mentor has claimed yet. Mentors need this to claim
+// mentees; the HOD version of the same list lives in controllers/hod.js.
+export const getUnassignedStudents = async (req, res, next) => {
+  try {
+    const students = await prisma.student.findMany({
+      where: { mentorId: null },
+      orderBy: { rollNumber: 'asc' }
+    });
+    res.json(students);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const addProgressLog = async (req, res, next) => {
   try {
     const { studentId, remark, semesterRecordId } = req.body;

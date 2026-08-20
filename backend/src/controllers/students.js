@@ -179,16 +179,3 @@ export const deleteStudent = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-export const assignMentor = async (req, res) => {
-  try {
-    const { studentId, mentorId } = req.body;
-    const student = await prisma.student.update({
-      where: { id: studentId },
-      data: { mentorId }
-    });
-    res.json(student);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};

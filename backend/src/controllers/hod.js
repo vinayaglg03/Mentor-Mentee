@@ -5,6 +5,7 @@ import { assertMentorHasCapacity } from '../lib/access.js';
 export const getAllStudents = async (req, res) => {
   try {
     const students = await prisma.student.findMany({
+      where: { status: 'ACTIVE' },
       include: {
         mentor: { select: { id: true, name: true } },
         semesterRecords: {
@@ -30,7 +31,7 @@ export const getAllStudents = async (req, res) => {
 export const getUnassignedStudents = async (req, res) => {
   try {
     const students = await prisma.student.findMany({
-      where: { mentorId: null },
+      where: { status: 'ACTIVE', mentorId: null },
       orderBy: { rollNumber: 'asc' }
     });
     res.json(students);
@@ -78,6 +79,7 @@ export const getAtRiskStudents = async (req, res) => {
   try {
     const atRisk = await prisma.student.findMany({
       where: {
+        status: 'ACTIVE',
         semesterRecords: {
           some: {
             alerts: {
@@ -107,6 +109,7 @@ export const getAtRiskStudents = async (req, res) => {
 export const getTopPerformers = async (req, res) => {
   try {
     const studentsWithRecords = await prisma.student.findMany({
+      where: { status: 'ACTIVE' },
       include: { 
         semesterRecords: {
           include: { scores: true }
@@ -144,7 +147,7 @@ export const getMentors = async (req, res) => {
       where: { role: 'MENTOR' },
       include: {
         _count: {
-          select: { students: true }
+          select: { students: { where: { status: 'ACTIVE' } } }
         }
       }
     });

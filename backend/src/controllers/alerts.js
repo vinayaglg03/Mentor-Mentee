@@ -20,7 +20,7 @@ export const getMentorAlerts = async (req, res) => {
     const alerts = await prisma.alert.findMany({
       where: {
         semesterRecord: {
-          student: { mentorId: req.user.id }
+          student: { status: 'ACTIVE', mentorId: req.user.id }
         }
       },
       include: {
@@ -45,6 +45,7 @@ export const getMentorAlerts = async (req, res) => {
 export const getAllAlerts = async (req, res) => {
   try {
     const alerts = await prisma.alert.findMany({
+      where: { semesterRecord: { student: { status: 'ACTIVE' } } },
       include: {
         semesterRecord: { 
           include: { student: { select: { name: true, rollNumber: true, department: true } } } 

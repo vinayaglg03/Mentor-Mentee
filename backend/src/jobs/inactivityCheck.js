@@ -7,6 +7,7 @@ const INACTIVITY_DAYS = 14;
 // never writes to the database.
 export const runInactivityCheck = async () => {
   const students = await prisma.student.findMany({
+    where: { status: 'ACTIVE' },
     select: {
       id: true,
       semesterRecords: {

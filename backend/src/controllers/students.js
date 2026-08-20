@@ -4,7 +4,10 @@ import { assertCanAccessStudent } from '../lib/access.js';
 export const getAllStudents = async (req, res, next) => {
   try {
     // Mentors only ever see their own mentees; HODs see everyone.
-    const where = req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id };
+    // Students who left the programme are excluded from listings.
+    const where = req.user.role === 'ADMIN'
+      ? { status: 'ACTIVE' }
+      : { status: 'ACTIVE', mentorId: req.user.id };
 
     const students = await prisma.student.findMany({
       where,
@@ -147,12 +150,17 @@ export const updateStudent = async (req, res, next) => {
   }
 };
 
-export const deleteStudent = async (req, res) => {
+// Soft delete: the academic record (semester records, scores, alerts,
+// progress logs) is kept, the student just stops appearing in listings.
+export const deleteStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await prisma.student.delete({ where: { id } });
-    res.json({ message: 'Student deleted successfully' });
+    await prisma.student.update({
+      where: { id },
+      data: { status: 'DROPPED' }
+    });
+    res.json({ message: 'Student marked as dropped' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

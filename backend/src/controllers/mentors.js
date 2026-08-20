@@ -9,7 +9,7 @@ export const getMentors = async (req, res) => {
         id: true,
         name: true,
         email: true,
-        _count: { select: { students: true } }
+        _count: { select: { students: { where: { status: 'ACTIVE' } } } }
       }
     });
     res.json(mentors);
@@ -21,7 +21,7 @@ export const getMentors = async (req, res) => {
 export const getAssignedStudents = async (req, res) => {
   try {
     const students = await prisma.student.findMany({
-      where: { mentorId: req.user.id },
+      where: { status: 'ACTIVE', mentorId: req.user.id },
       include: {
         semesterRecords: {
           orderBy: { semester: 'desc' },
@@ -46,7 +46,7 @@ export const getAssignedStudents = async (req, res) => {
 export const getUnassignedStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
-      where: { mentorId: null },
+      where: { status: 'ACTIVE', mentorId: null },
       orderBy: { rollNumber: 'asc' }
     });
     res.json(students);

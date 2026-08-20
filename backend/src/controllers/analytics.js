@@ -2,7 +2,7 @@ import prisma from '../prismaClient.js';
 
 export const getHODAnalytics = async (req, res) => {
   try {
-    const totalStudents = await prisma.student.count();
+    const totalStudents = await prisma.student.count({ where: { status: 'ACTIVE' } });
     const totalMentors = await prisma.user.count({ where: { role: 'MENTOR' } });
     
     // 1. Performance Overview (Global) - Now querying via SemesterRecord links
@@ -29,6 +29,7 @@ export const getHODAnalytics = async (req, res) => {
 
     // 3. Top Performers (based on avg final score across all semester records)
     const studentsWithRecords = await prisma.student.findMany({
+      where: { status: 'ACTIVE' },
       include: { 
         semesterRecords: {
           include: { scores: true }
@@ -54,7 +55,7 @@ export const getHODAnalytics = async (req, res) => {
     // 4. Mentor-wise Student Distribution
     const mentors = await prisma.user.findMany({
       where: { role: 'MENTOR' },
-      include: { _count: { select: { students: true } } }
+      include: { _count: { select: { students: { where: { status: 'ACTIVE' } } } } }
     });
     const mentorDistribution = mentors.map(m => ({ name: m.name, studentCount: m._count.students }));
 

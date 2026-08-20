@@ -27,7 +27,7 @@ const assertOwnership = (user, mentorId) => {
 export async function assertMentorHasCapacity(mentorId) {
   const mentor = await prisma.user.findUnique({
     where: { id: mentorId },
-    select: { id: true, name: true, maxStudents: true, _count: { select: { students: true } } }
+    select: { id: true, name: true, maxStudents: true, _count: { select: { students: { where: { status: 'ACTIVE' } } } } }
   });
 
   if (!mentor) throw new NotFoundError('Mentor not found.');

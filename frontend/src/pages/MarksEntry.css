@@ -1,0 +1,159 @@
+.marks-view {
+  padding-bottom: 3rem;
+}
+
+.marks-header {
+  margin-bottom: 1.5rem;
+}
+
+.marks-header h1 {
+  font-size: 1.85rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.marks-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 1.25rem;
+}
+
+.marks-banner span {
+  flex: 1;
+}
+
+.marks-banner-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
+}
+
+.marks-banner-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-left: 4px solid #10b981;
+}
+
+.marks-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.25rem 1.5rem;
+}
+
+.marks-filters .form-group {
+  margin: 0;
+  min-width: 140px;
+}
+
+.marks-filters .marks-subject {
+  min-width: 280px;
+  flex: 1;
+}
+
+.marks-grid-card {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.marks-grid-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.marks-grid-head h3 {
+  margin: 0;
+}
+
+.marks-grid-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.marks-problem-count {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.marks-empty {
+  font-size: 14px;
+  margin: 0;
+}
+
+.marks-table-wrap {
+  max-height: 65vh;
+  overflow: auto;
+}
+
+.marks-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.marks-max {
+  font-weight: 400;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.marks-cell {
+  position: relative;
+  padding: 0.35rem 0.5rem;
+}
+
+.marks-input {
+  width: 78px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.marks-input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+.marks-input:disabled {
+  background: #f1f5f9;
+  color: var(--fg-muted);
+}
+
+.marks-input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18);
+}
+
+.marks-cell-problem {
+  position: absolute;
+  left: 0.5rem;
+  bottom: -0.35rem;
+  font-size: 10.5px;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.marks-status {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.marks-failed {
+  color: var(--danger);
+}

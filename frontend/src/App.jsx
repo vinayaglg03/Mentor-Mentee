@@ -9,6 +9,7 @@ import MentorDashboard from './pages/MentorDashboard';
 import HODDashboard from './pages/HODDashboard';
 import StudentDetail from './pages/StudentDetail';
 import ImportPage from './pages/ImportPage';
+import MarksEntry from './pages/MarksEntry';
 
 import LandingPage from './pages/LandingPage';
 
@@ -58,6 +59,12 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/marks/entry" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <MarksEntry />
+          </ProtectedRoute>
+        } />
+
         <Route path="/import" element={
           <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
             <ImportPage />

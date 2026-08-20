@@ -15,7 +15,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Only these origins may call the API. Requests without an Origin header
+// (curl, health checks, server-to-server) are allowed through.
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
@@ -31,11 +42,6 @@ app.use('/api/hod', hodRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
-
-app.use(cors({
-  origin: "https://amis-frontend.onrender.com",
-  credentials: true
-}));
 
 // Error handling backend middleware
 app.use((err, req, res, next) => {

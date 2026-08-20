@@ -14,6 +14,8 @@ const authLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many attempts. Please try again in 15 minutes.' },
+  // The test suite hits these endpoints repeatedly from one address.
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 router.post('/register', authLimiter, validate(registerSchema), register);

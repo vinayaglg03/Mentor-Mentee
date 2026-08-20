@@ -1,8 +1,13 @@
 import prisma from '../prismaClient.js';
+import { assertCanAccessStudent } from '../lib/access.js';
 
-export const getAllStudents = async (req, res) => {
+export const getAllStudents = async (req, res, next) => {
   try {
+    // Mentors only ever see their own mentees; HODs see everyone.
+    const where = req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id };
+
     const students = await prisma.student.findMany({
+      where,
       include: { 
         mentor: { select: { name: true } }, 
         semesterRecords: {
@@ -19,12 +24,14 @@ export const getAllStudents = async (req, res) => {
     });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const getStudentById = async (req, res) => {
+export const getStudentById = async (req, res, next) => {
   try {
+    await assertCanAccessStudent(req.user, req.params.id);
+
     const student = await prisma.student.findUnique({
       where: { id: req.params.id },
       include: { 
@@ -68,7 +75,7 @@ export const getStudentById = async (req, res) => {
 
     res.json(student);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
@@ -135,10 +142,12 @@ export const createStudent = async (req, res) => {
   }
 };
 
-export const updateStudent = async (req, res) => {
+export const updateStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, rollNumber, department, currentYear, currentSemester, currentAcademicYear, enrollmentYear, email, mentorId } = req.body;
+
+    await assertCanAccessStudent(req.user, id);
 
     const student = await prisma.student.update({
       where: { id },
@@ -151,12 +160,13 @@ export const updateStudent = async (req, res) => {
         currentAcademicYear: currentAcademicYear ? Number(currentAcademicYear) : undefined,
         enrollmentYear: enrollmentYear ? Number(enrollmentYear) : undefined,
         email,
-        mentorId
+        // Only a HOD may move a student to a different mentor.
+        mentorId: req.user.role === 'ADMIN' ? mentorId : undefined
       }
     });
     res.json(student);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

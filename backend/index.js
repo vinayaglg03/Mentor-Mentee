@@ -40,10 +40,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// Error handling backend middleware
+// Central error handler. Typed errors carry their own status; anything else
+// is logged server-side and reported to the client as a generic 500 so that
+// database internals never reach the browser.
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  if (err && Number.isInteger(err.status) && err.status < 500) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
+  console.error(`Unhandled error on ${req.method} ${req.originalUrl}:`, err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

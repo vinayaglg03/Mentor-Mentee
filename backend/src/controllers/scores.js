@@ -1,8 +1,11 @@
 import prisma from '../prismaClient.js';
+import { assertCanAccessStudent } from '../lib/access.js';
 
-export const submitScore = async (req, res) => {
+export const submitScore = async (req, res, next) => {
   try {
     const { studentId, subjectId, test1, test2, assignment, exam, academicYear, semester } = req.body;
+
+    await assertCanAccessStudent(req.user, studentId);
     
     // 1. Find or Create SemesterRecord
     const sem = Number(semester);
@@ -84,7 +87,7 @@ export const submitScore = async (req, res) => {
 
     res.json(score);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
@@ -135,8 +138,10 @@ const generateAlerts = async (semesterRecordId, scoreResult, params) => {
   }
 };
 
-export const getStudentScores = async (req, res) => {
+export const getStudentScores = async (req, res, next) => {
   try {
+    await assertCanAccessStudent(req.user, req.params.studentId);
+
     const scores = await prisma.score.findMany({
       where: { 
         semesterRecord: { studentId: req.params.studentId } 
@@ -145,6 +150,6 @@ export const getStudentScores = async (req, res) => {
     });
     res.json(scores);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

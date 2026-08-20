@@ -1,14 +1,17 @@
 import prisma from '../prismaClient.js';
+import { assertCanAccessStudent, assertCanAccessAlert } from '../lib/access.js';
 
-export const getStudentAlerts = async (req, res) => {
+export const getStudentAlerts = async (req, res, next) => {
   try {
+    await assertCanAccessStudent(req.user, req.params.studentId);
+
     const alerts = await prisma.alert.findMany({
       where: { semesterRecord: { studentId: req.params.studentId } },
       orderBy: { timestamp: 'desc' }
     });
     res.json(alerts);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
@@ -61,15 +64,18 @@ export const getAllAlerts = async (req, res) => {
   }
 };
 
-export const resolveAlert = async (req, res) => {
+export const resolveAlert = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    await assertCanAccessAlert(req.user, id);
+
     const alert = await prisma.alert.update({
       where: { id },
       data: { resolved: true }
     });
     res.json(alert);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };

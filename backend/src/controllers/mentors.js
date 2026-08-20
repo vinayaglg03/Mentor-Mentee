@@ -1,4 +1,5 @@
 import prisma from '../prismaClient.js';
+import { assertCanAccessStudent, assertCanAccessSemesterRecord } from '../lib/access.js';
 
 export const getMentors = async (req, res) => {
   try {
@@ -40,12 +41,18 @@ export const getAssignedStudents = async (req, res) => {
   }
 };
 
-export const addProgressLog = async (req, res) => {
+export const addProgressLog = async (req, res, next) => {
   try {
     const { studentId, remark, semesterRecordId } = req.body;
     
     let targetSemId = semesterRecordId;
-    
+
+    if (targetSemId) {
+      await assertCanAccessSemesterRecord(req.user, targetSemId);
+    } else {
+      await assertCanAccessStudent(req.user, studentId);
+    }
+
     if (!targetSemId) {
       // Find current active semester record
       const student = await prisma.student.findUnique({
@@ -67,13 +74,18 @@ export const addProgressLog = async (req, res) => {
 
     res.status(201).json(log);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const getProgressLogs = async (req, res) => {
+export const getProgressLogs = async (req, res, next) => {
   try {
     const { studentId } = req.params;
+
+    if (studentId) {
+      await assertCanAccessStudent(req.user, studentId);
+    }
+
     const logs = await prisma.progressLog.findMany({
       where: studentId ? { semesterRecord: { studentId } } : { mentorId: req.user.id },
       include: { 
@@ -84,15 +96,22 @@ export const getProgressLogs = async (req, res) => {
     });
     res.json(logs);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-export const addAchievement = async (req, res) => {
+export const addAchievement = async (req, res, next) => {
   try {
     const { studentId, semesterRecordId, title, description } = req.body;
     
     let targetSemId = semesterRecordId;
+
+    if (targetSemId) {
+      await assertCanAccessSemesterRecord(req.user, targetSemId);
+    } else {
+      await assertCanAccessStudent(req.user, studentId);
+    }
+
     if (!targetSemId) {
        const student = await prisma.student.findUnique({
         where: { id: studentId },
@@ -112,7 +131,7 @@ export const addAchievement = async (req, res) => {
     });
     res.status(201).json(achievement);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

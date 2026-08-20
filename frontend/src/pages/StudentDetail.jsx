@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import api from '../services/api';
+import { downloadFile } from '../services/download';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown
 } from 'lucide-react';
 import './StudentDetail.css';
 import './MarksEntry.css';
@@ -40,6 +41,7 @@ const StudentDetail = () => {
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   const [newLog, setNewLog] = useState('');
   const [newAchievement, setNewAchievement] = useState({ title: '', description: '' });
   const [newScore, setNewScore] = useState({ 
@@ -169,6 +171,22 @@ const StudentDetail = () => {
     return records.length > 0 ? records[records.length - 1].cgpa : null;
   }, [student]);
 
+  // The signed, filed semester document - one click, no options to get wrong.
+  const downloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      await downloadFile(
+        `/reports/student/${id}/mentoring.pdf`,
+        undefined,
+        `mentoring-report-${student?.rollNumber || id}.pdf`
+      );
+    } catch {
+      alert('Could not produce the report.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const progressionOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -281,9 +299,15 @@ const StudentDetail = () => {
             </div>
           </div>
           <div className="profile-stats">
-            <div className="radial-progress">
-              {/* Optional: Add a CSS radial progress for overall GPA/Attendance */}
-            </div>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={downloadReport}
+              disabled={downloadingReport}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+            >
+              <FileDown size={16} /> {downloadingReport ? 'Preparing…' : 'Mentoring report'}
+            </button>
           </div>
         </motion.div>
 

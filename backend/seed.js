@@ -11,7 +11,8 @@ async function main() {
       email: 'test@example.com',
       name: 'Test HOD',
       password: hashedPassword,
-      role: 'ADMIN'
+      role: 'ADMIN',
+      approved: true
     }
   });
 
@@ -22,7 +23,8 @@ async function main() {
       email: 'mentor@example.com',
       name: 'Test Mentor',
       password: hashedPassword,
-      role: 'MENTOR'
+      role: 'MENTOR',
+      approved: true
     }
   });
 

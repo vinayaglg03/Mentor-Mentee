@@ -9,7 +9,8 @@
     "dev": "nodemon index.js",
     "build": "tsc",
     "start": "node index.js",
-    "job:inactivity": "node src/jobs/inactivityCheck.js"
+    "job:inactivity": "node src/jobs/inactivityCheck.js",
+    "seed": "node seed.js"
   },
   "keywords": [],
   "author": "",

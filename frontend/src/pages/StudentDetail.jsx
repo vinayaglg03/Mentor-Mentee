@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
@@ -24,6 +24,10 @@ const StudentDetail = () => {
   const [subjects, setSubjects] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+  // The achievement modal markup was never added, so the button that calls
+  // setShowAchievementModal opens nothing. Wiring it up is a feature change,
+  // out of scope for this pass.
+  // eslint-disable-next-line no-unused-vars
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
@@ -168,6 +172,7 @@ const StudentDetail = () => {
     } catch(err) { console.error(err); }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleAchievementSubmit = async (e) => {
     e.preventDefault();
     if (!newAchievement.title.trim() || !selectedSemesterId) return;

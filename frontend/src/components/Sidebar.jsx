@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Sidebar.css';

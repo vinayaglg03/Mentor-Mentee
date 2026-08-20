@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Bell, HelpCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import './TopBar.css';
 
 const TopBar = () => {

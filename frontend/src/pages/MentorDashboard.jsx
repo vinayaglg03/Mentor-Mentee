@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
 
@@ -106,7 +106,7 @@ const MentorDashboard = () => {
     try {
       await api.delete(`/students/${id}`);
       fetchStudents();
-    } catch (err) {
+    } catch {
       alert("Failed to delete student. Only admins can delete students.");
     }
   };

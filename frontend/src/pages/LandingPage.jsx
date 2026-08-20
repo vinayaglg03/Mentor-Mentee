@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { motion } from 'framer-motion';
 import { GraduationCap, ArrowRight, Shield, BarChart3, BellRing, Target } from 'lucide-react';
 import './LandingPage.css';

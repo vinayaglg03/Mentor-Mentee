@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import config from './src/config.js';
 import authRoutes from './src/routes/auth.js';
 import mentorRoutes from './src/routes/mentors.js';
 import studentRoutes from './src/routes/students.js';
@@ -10,15 +10,12 @@ import alertRoutes from './src/routes/alerts.js';
 import subjectRoutes from './src/routes/subjects.js';
 import hodRoutes from './src/routes/hod.js';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.port;
 
 // Only these origins may call the API. Requests without an Origin header
 // (curl, health checks, server-to-server) are allowed through.
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
-  .split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = config.corsOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {

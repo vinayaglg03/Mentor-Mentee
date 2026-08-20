@@ -1,11 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../prismaClient.js';
+import config from '../config.js';
 
 const signToken = (user) =>
   jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET || "supersecretjwtkey_for_development_purposes_only",
+    config.jwtSecret,
     { expiresIn: '24h' }
   );
 

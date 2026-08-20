@@ -83,7 +83,7 @@ export const submitScore = async (req, res, next) => {
     });
 
     // --- AUTO ALERTS GENERATION ---
-    await generateAlerts(semesterRecord.id, score, { test1: t1, test2: t2, assignment: assign, external: externalFinal });
+    await generateAlerts(semesterRecord.id, score, { semester: sem, test1: t1, test2: t2, assignment: assign, external: externalFinal });
 
     res.json(score);
   } catch (error) {
@@ -91,20 +91,21 @@ export const submitScore = async (req, res, next) => {
   }
 };
 
+// `semester` lives on SemesterRecord, not on Score, so it has to be passed in.
 const generateAlerts = async (semesterRecordId, scoreResult, params) => {
-  const { test1, test2, assignment, external } = params;
+  const { semester, test1, test2, assignment, external } = params;
   const alertsToCreate = [];
 
   if (external !== null && external < 18) {
-    alertsToCreate.push({ type: 'FAIL', severity: 'HIGH', message: `External score (${external}) in semester ${scoreResult.semester} is below 18.` });
+    alertsToCreate.push({ type: 'FAIL', severity: 'HIGH', message: `External score (${external}) in semester ${semester} is below 18.` });
   }
   
   if (scoreResult.finalScore !== null && scoreResult.finalScore < 40) {
-    alertsToCreate.push({ type: 'AT_RISK', severity: 'HIGH', message: `Final score (${scoreResult.finalScore}) in semester ${scoreResult.semester} is below 40.` });
+    alertsToCreate.push({ type: 'AT_RISK', severity: 'HIGH', message: `Final score (${scoreResult.finalScore}) in semester ${semester} is below 40.` });
   }
 
   if (scoreResult.internalTotal !== null && scoreResult.internalTotal < 20) {
-    alertsToCreate.push({ type: 'WEAK', severity: 'MEDIUM', message: `Internal total (${scoreResult.internalTotal}) in semester ${scoreResult.semester} is below 20.` });
+    alertsToCreate.push({ type: 'WEAK', severity: 'MEDIUM', message: `Internal total (${scoreResult.internalTotal}) in semester ${semester} is below 20.` });
   }
 
   if (Math.abs(test1 - test2) > 10) {

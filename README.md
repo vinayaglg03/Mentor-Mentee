@@ -17,8 +17,19 @@ staff.
   by type, top performers, mentor-wise student distribution, at-risk masterlist,
   and assignment of students to mentors.
 - **Automatic alerts** — saving marks raises alerts for failure risk, weak
-  internals, inconsistent test performance and low engagement. A separate job
-  raises an alert when a student has had no progress log for 14 days.
+  internals, inconsistent test performance and low engagement; saving attendance
+  raises them below 75% and 85%. A separate job raises an alert when a student
+  has had no progress log for 14 days.
+- **Bulk import** — students, subjects, marks and attendance arrive as a
+  spreadsheet. Every file is previewed with per-row errors before anything is
+  written, and a commit applies the whole file or none of it.
+- **Class-wide entry** — one screen per subject for marks and for attendance,
+  keyboard-driven, with Excel paste and one save.
+- **SGPA and CGPA** — computed automatically from a configurable grade scale
+  whenever marks change, and shown as a semester trend.
+- **Reports** — a printable per-mentee mentoring report (PDF) with the dated
+  interaction log auditors ask for, a class summary (PDF) for HOD reviews, and
+  at-risk and marks-sheet exports (Excel).
 
 ## Roles
 
@@ -41,11 +52,14 @@ User (MENTOR | ADMIN)
  └── Student (assigned mentor, status ACTIVE|GRADUATED|DROPPED|TRANSFERRED)
       └── SemesterRecord (one per semester + academic year, sgpa/cgpa)
            ├── Score        (per Subject: test1, test2, assignment, exam, totals)
+           ├── Attendance   (per Subject: classesHeld, classesAttended, asOfDate)
            ├── Alert        (type, severity HIGH|MEDIUM|LOW, resolved)
            ├── Achievement  (title, description, date)
            └── ProgressLog  (mentor remark, date)
 
-Subject (code, department, academicYear, semester) ──< Score
+Subject (code, department, academicYear, semester, credits) ──< Score, Attendance
+GradeBand (label, minScore, gradePoint)   -- the grade scale, editable by an ADMIN
+PendingImport (a parsed spreadsheet awaiting commit, expires after 30 minutes)
 ```
 
 Everything academic hangs off `SemesterRecord`, so a student keeps a full
@@ -62,6 +76,30 @@ preserved; non-`ACTIVE` students are excluded from listings and analytics.
 
 The external exam is entered out of 50, so `finalScore = internalTotal + exam`
 out of 100.
+
+### Attendance and alerts
+
+Attendance is recorded per subject as classes held and classes attended. Below
+75% raises a HIGH `LOW_ATTENDANCE` alert, 75–85% a MEDIUM one — the eligibility
+bands most colleges run on.
+
+### SGPA and CGPA
+
+Each subject's `finalScore` maps to a grade point through the `GradeBand` table,
+seeded with a 10-point scale (90+ = 10 down to a fail at 0) and editable through
+`PUT /api/admin/grade-scale`. SGPA is the credit-weighted average of grade points
+for a semester; CGPA is the same across every semester so far, stored against
+each semester record so the trend can be plotted. Failed subjects still consume
+their credits. After changing the scale, run `npm run job:backfill-gpa`.
+
+### Bulk import
+
+`POST /api/import/:type/preview` parses an `.xlsx` or `.csv`, validates every row
+and returns what would change, with errors carrying the spreadsheet row number.
+Nothing is written. `POST /api/import/:type/commit` then applies the stored rows
+in a single transaction and refuses a file that still has invalid rows. Types:
+`students`, `subjects`, `marks`, `attendance`. Templates come from
+`GET /api/import/:type/template`.
 
 ## Tech stack
 
@@ -116,6 +154,11 @@ npm run dev               # http://localhost:5173
 | `CORS_ORIGINS` | no | Comma-separated allowed origins, default `http://localhost:5173` |
 | `LOG_LEVEL` | no | pino level, default `debug` (`info` in production) |
 | `NODE_ENV` | no | `production` when deployed |
+| `COLLEGE_NAME` | no | Printed on exported reports |
+| `COLLEGE_ADDRESS` | no | Second line of the report letterhead |
+| `COLLEGE_DEPARTMENT` | no | Second line of the report letterhead |
+| `COLLEGE_LOGO_PATH` | no | Path to a PNG or JPG logo for report headers |
+| `TEST_DATABASE_URL` | no | Throwaway database for `npm test`; it is truncated on every run |
 
 **frontend/.env**
 
@@ -136,6 +179,7 @@ Prisma 7 the connection URL lives there rather than in `schema.prisma`.
 | `npm start` | Start the API |
 | `npm run seed` | Create the test ADMIN and MENTOR accounts |
 | `npm run job:inactivity` | Raise INACTIVE alerts for stale semester records |
+| `npm run job:backfill-gpa` | Recompute SGPA and CGPA for every student |
 | `npm test` | Run the API test suite (needs `TEST_DATABASE_URL`) |
 
 **frontend**
@@ -164,6 +208,15 @@ All routes are under `/api` and every route except `register`, `login` and
 | POST | `/students` | MENTOR, ADMIN |
 | DELETE | `/students/:id` | ADMIN (soft delete) |
 | GET | `/scores/:studentId`, POST `/scores` | owning mentor or ADMIN |
+| POST | `/scores/bulk` | MENTOR, ADMIN (own mentees only) |
+| GET | `/scores/class` | MENTOR, ADMIN (own mentees only) |
+| POST | `/attendance/bulk` | MENTOR, ADMIN (own mentees only) |
+| GET | `/attendance/class`, `/attendance/student/:studentId` | owning mentor or ADMIN |
+| GET | `/import/:type/template` | MENTOR, ADMIN |
+| POST | `/import/:type/preview`, `/import/:type/commit` | MENTOR, ADMIN |
+| GET | `/reports/student/:studentId/mentoring.pdf` | owning mentor or ADMIN |
+| GET | `/reports/class-summary.pdf` | MENTOR, ADMIN (scoped to own mentees) |
+| GET | `/reports/at-risk.xlsx`, `/reports/marks-sheet.xlsx` | MENTOR, ADMIN (scoped) |
 | GET | `/alerts/student/:studentId`, PUT `/alerts/:id/resolve` | owning mentor or ADMIN |
 | GET | `/alerts/mentor` | MENTOR, ADMIN |
 | GET | `/alerts/all` | ADMIN |
@@ -172,7 +225,8 @@ All routes are under `/api` and every route except `register`, `login` and
 | GET/POST | `/mentors/logs`, POST `/mentors/achievements` | owning mentor or ADMIN |
 | GET/POST/PUT | `/subjects` | MENTOR, ADMIN |
 | GET | `/analytics/hod`, `/hod/*` | ADMIN |
-| POST | `/admin/jobs/inactivity-check` | ADMIN |
+| POST | `/admin/jobs/inactivity-check`, `/admin/jobs/backfill-gpa` | ADMIN |
+| GET/PUT | `/admin/grade-scale` | ADMIN |
 
 Ownership is enforced server-side in `backend/src/lib/access.js`: a mentor
 touching a student who is not theirs gets `403`, never data.

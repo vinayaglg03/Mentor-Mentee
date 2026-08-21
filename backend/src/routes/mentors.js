@@ -1,6 +1,6 @@
 import express from 'express';
 import { getMentors, getAssignedStudents, getUnassignedStudents, addProgressLog, getProgressLogs, claimStudent, addAchievement } from '../controllers/mentors.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRoleAtLeast } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { claimStudentSchema, addProgressLogSchema, addAchievementSchema, progressLogsParamSchema } from '../schemas/mentors.js';
 
@@ -8,13 +8,13 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
-router.get('/', requireRole('ADMIN'), getMentors);
-router.get('/students', requireRole(['MENTOR', 'ADMIN']), getAssignedStudents);
-router.get('/students/unassigned', requireRole(['MENTOR', 'ADMIN']), getUnassignedStudents);
-router.put('/claim-student', requireRole(['MENTOR', 'ADMIN']), validate(claimStudentSchema), claimStudent);
-router.post('/logs', requireRole(['MENTOR', 'ADMIN']), validate(addProgressLogSchema), addProgressLog);
-router.get('/logs', requireRole(['MENTOR', 'ADMIN']), getProgressLogs);
+router.get('/', requireRoleAtLeast('COORDINATOR'), getMentors);
+router.get('/students', requireRoleAtLeast('MENTOR'), getAssignedStudents);
+router.get('/students/unassigned', requireRoleAtLeast('MENTOR'), getUnassignedStudents);
+router.put('/claim-student', requireRoleAtLeast('MENTOR'), validate(claimStudentSchema), claimStudent);
+router.post('/logs', requireRoleAtLeast('MENTOR'), validate(addProgressLogSchema), addProgressLog);
+router.get('/logs', requireRoleAtLeast('MENTOR'), getProgressLogs);
 router.get('/logs/:studentId', validate(progressLogsParamSchema), getProgressLogs);
-router.post('/achievements', requireRole(['MENTOR', 'ADMIN']), validate(addAchievementSchema), addAchievement);
+router.post('/achievements', requireRoleAtLeast('MENTOR'), validate(addAchievementSchema), addAchievement);
 
 export default router;

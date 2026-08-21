@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { runInactivityCheck } from '../jobs/inactivityCheck.js';
 import { backfillGpa } from '../jobs/backfillGpa.js';
 import { getGradeScale, replaceGradeScale } from '../controllers/gradeScale.js';
@@ -8,7 +8,7 @@ import { gradeScaleSchema } from '../schemas/gradeScale.js';
 
 const router = express.Router();
 
-router.use(authenticateToken, requireRole('ADMIN'));
+router.use(authenticateToken, requirePermission('analytics:read'));
 
 router.post('/jobs/inactivity-check', async (req, res, next) => {
   try {

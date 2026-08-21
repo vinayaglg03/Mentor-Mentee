@@ -1,5 +1,6 @@
 import prisma from '../../prismaClient.js';
 import { attendancePercent } from '../scoring.js';
+import { studentScopeWhere } from '../access.js';
 import {
   createDocument, drawLetterhead, sectionHeading, table, labelledFields,
   finalise, COLOURS,
@@ -16,7 +17,7 @@ export const loadClassSummaryData = async ({ user, departmentId, semester, acade
       status: 'ACTIVE',
       departmentId,
       currentSemester: semester,
-      ...(user.role === 'ADMIN' ? {} : { mentorId: user.id }),
+      ...(await studentScopeWhere(user)),
     },
     orderBy: { rollNumber: 'asc' },
     include: {

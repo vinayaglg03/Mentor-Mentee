@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import ExcelJS from 'exceljs';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, createSubject, createDepartment, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, createDepartment, authHeader, createHod, createSuperAdmin } from './helpers.js';
 import { resolveDepartmentCode, DEPARTMENT_ALIASES } from '../src/jobs/departmentReport.js';
 
 let mentor, admin;
@@ -10,7 +10,7 @@ let mentor, admin;
 beforeEach(async () => {
   await resetDatabase();
   mentor = await createUser({ role: 'MENTOR', maxStudents: 100 });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
 });
 
 afterAll(() => prisma.$disconnect());
@@ -63,18 +63,22 @@ describe('GET /api/departments', () => {
     expect(res.status).toBe(401);
   });
 
-  it('lets an admin create one and refuses a mentor', async () => {
-    const created = await request(app).post('/api/departments').set(authHeader(admin))
+  it('lets a super admin create one and refuses everyone else', async () => {
+    const superAdmin = await createSuperAdmin();
+
+    const created = await request(app).post('/api/departments').set(authHeader(superAdmin))
       .send({ code: 'me', name: 'Mechanical Engineering' });
 
     expect(created.status).toBe(201);
     // Codes are normalised on the way in.
     expect(created.body.code).toBe('ME');
 
-    const refused = await request(app).post('/api/departments').set(authHeader(mentor))
-      .send({ code: 'CV', name: 'Civil' });
+    for (const user of [mentor, admin]) {
+      const refused = await request(app).post('/api/departments').set(authHeader(user))
+        .send({ code: 'CV', name: 'Civil' });
 
-    expect(refused.status).toBe(403);
+      expect(refused.status).toBe(403);
+    }
   });
 });
 
@@ -164,7 +168,18 @@ describe('writes resolve the department relation', () => {
   });
 
   it('links a subject to its department', async () => {
-    const res = await request(app).post('/api/subjects').set(authHeader(admin)).send({
+    // The CSE HOD may not create an ECE subject, but a super admin may.
+    const refused = await request(app).post('/api/subjects').set(authHeader(admin)).send({
+      name: 'Signals',
+      code: 'EC301',
+      department: 'ECE',
+      academicYear: 2026,
+      semester: 3,
+    });
+    expect(refused.status).toBe(403);
+
+    const superAdmin = await createSuperAdmin();
+    const res = await request(app).post('/api/subjects').set(authHeader(superAdmin)).send({
       name: 'Signals',
       code: 'EC301',
       department: 'ECE',

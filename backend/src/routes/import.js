@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRoleAtLeast } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { getTemplate, preview, commit } from '../controllers/import.js';
 import { importTypeParamSchema, commitImportSchema } from '../schemas/import.js';
@@ -14,7 +14,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 1 },
 });
 
-router.use(authenticateToken, requireRole(['MENTOR', 'ADMIN']));
+router.use(authenticateToken, requireRoleAtLeast('MENTOR'));
 
 router.get('/:type/template', validate(importTypeParamSchema), getTemplate);
 router.post('/:type/preview', validate(importTypeParamSchema), upload.single('file'), preview);

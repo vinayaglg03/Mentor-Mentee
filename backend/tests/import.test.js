@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import ExcelJS from 'exceljs';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader, createHod } from './helpers.js';
 
 let mentor, admin;
 
 beforeEach(async () => {
   await resetDatabase();
   mentor = await createUser({ role: 'MENTOR' });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
 });
 
 afterAll(() => prisma.$disconnect());
@@ -140,7 +140,7 @@ describe('student import', () => {
     const preview = await upload('students', mentor, file);
 
     expect(preview.body.summary.invalid).toBe(1);
-    expect(preview.body.errors[0].message).toMatch(/another mentor/);
+    expect(preview.body.errors[0].message).toMatch(/not in the group you look after/);
   });
 
   it('enforces the mentor capacity cap across the file', async () => {
@@ -290,7 +290,7 @@ describe('marks import', () => {
     const preview = await upload('marks', mentor, file);
 
     expect(preview.body.summary.invalid).toBe(1);
-    expect(preview.body.errors[0].message).toMatch(/not one of your mentees/);
+    expect(preview.body.errors[0].message).toMatch(/not in the group you look after/);
   });
 
   it('flags unknown roll numbers and subject codes', async () => {

@@ -13,13 +13,18 @@ model User {
   password     String
   role         Role          @default(MENTOR)
   approved     Boolean       @default(false)
+  // The department a HOD heads, or the one a coordinator/mentor belongs to.
+  departmentId String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   maxStudents  Int           @default(30)
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
+  department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
   headedDepartments Department[] @relation("DepartmentHod")
   coordinatedSections Section[]  @relation("SectionCoordinator")
+
+  @@index([departmentId])
 }
 
 model Student {
@@ -64,6 +69,7 @@ model Department {
   updatedAt DateTime @updatedAt
 
   hod       User?     @relation("DepartmentHod", fields: [hodId], references: [id])
+  members   User[]    @relation("DepartmentMembers")
   students  Student[]
   subjects  Subject[]
   batches   Batch[]
@@ -242,9 +248,13 @@ model GradeBand {
   @@index([minScore])
 }
 
+// SUPER_ADMIN sees the institution, HOD their department, COORDINATOR their
+// section(s), MENTOR their own mentees.
 enum Role {
+  SUPER_ADMIN
+  HOD
+  COORDINATOR
   MENTOR
-  ADMIN
 }
 
 enum StudentStatus {

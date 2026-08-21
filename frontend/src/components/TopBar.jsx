@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Bell, HelpCircle } from 'lucide-react';
+import { roleLabel } from '../lib/permissions';
 import { useAuth } from '../context/useAuth';
 import './TopBar.css';
 
@@ -24,7 +25,7 @@ const TopBar = () => {
         
         <div className="topbar-user">
           <span className="user-name">{user?.name || 'Welcome'}</span>
-          <span className="user-role-badge">{user?.role === 'ADMIN' ? 'HOD' : 'Mentor'}</span>
+          <span className="user-role-badge">{roleLabel(user?.role)}</span>
         </div>
       </div>
     </header>

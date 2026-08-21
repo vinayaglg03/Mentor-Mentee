@@ -1,5 +1,5 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere } from '../lib/access.js';
 import { validateMarks, saveScore } from '../lib/scoring.js';
 import { updateGpaForSemesterRecords } from '../lib/gpa.js';
 import { requireDepartment } from '../lib/departments.js';
@@ -153,7 +153,7 @@ export const getClassScores = async (req, res, next) => {
         status: 'ACTIVE',
         departmentId: departmentRow.id,
         currentSemester: sem,
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
       },
       orderBy: { rollNumber: 'asc' },
       select: {

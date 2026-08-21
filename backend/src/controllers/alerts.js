@@ -1,5 +1,5 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent, assertCanAccessAlert } from '../lib/access.js';
+import { assertCanAccessStudent, assertCanAccessAlert, studentScopeWhere } from '../lib/access.js';
 
 export const getStudentAlerts = async (req, res, next) => {
   try {
@@ -45,7 +45,7 @@ export const getMentorAlerts = async (req, res, next) => {
 export const getAllAlerts = async (req, res, next) => {
   try {
     const alerts = await prisma.alert.findMany({
-      where: { semesterRecord: { student: { status: 'ACTIVE' } } },
+      where: { semesterRecord: { student: { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) } } },
       include: {
         semesterRecord: { 
           include: { student: { select: { name: true, rollNumber: true, department: true } } } 

@@ -1,4 +1,4 @@
-import { ForbiddenError } from '../access.js';
+import { ForbiddenError, can, atLeast } from '../access.js';
 import { ensureDepartment, ensureBatch, normaliseCode } from '../departments.js';
 
 export const columns = [
@@ -44,7 +44,10 @@ export const validate = async ({ rows, user, prisma }) => {
   const mentorEmails = [...new Set(rows.map(r => String(r.values.mentorEmail ?? '').trim().toLowerCase()).filter(Boolean))];
 
   const [existingStudents, studentsWithEmail, mentors, self] = await Promise.all([
-    prisma.student.findMany({ where: { rollNumber: { in: rollNumbers } }, select: { id: true, rollNumber: true, mentorId: true } }),
+    prisma.student.findMany({
+      where: { rollNumber: { in: rollNumbers } },
+      select: { id: true, rollNumber: true, mentorId: true, departmentId: true, sectionId: true },
+    }),
     prisma.student.findMany({ where: { email: { in: emails } }, select: { id: true, email: true, rollNumber: true } }),
     prisma.user.findMany({ where: { email: { in: mentorEmails } }, select: mentorSelect }),
     prisma.user.findUnique({ where: { id: user.id }, select: mentorSelect }),
@@ -127,7 +130,7 @@ export const validate = async ({ rows, user, prisma }) => {
         add('Mentor Email', 'No user with that email.');
       } else if (mentor.role !== 'MENTOR') {
         add('Mentor Email', 'That account is not a mentor.');
-      } else if (user.role !== 'ADMIN' && mentor.id !== user.id) {
+      } else if (!atLeast(user, 'COORDINATOR') && mentor.id !== user.id) {
         add('Mentor Email', 'Mentors can only import students assigned to themselves.');
       } else {
         mentorId = mentor.id;
@@ -138,8 +141,8 @@ export const validate = async ({ rows, user, prisma }) => {
 
     const existing = rollNumber ? byRoll.get(rollNumber) : null;
 
-    if (existing && user.role !== 'ADMIN' && existing.mentorId !== user.id) {
-      add('Roll Number', 'That student is assigned to another mentor.');
+    if (existing && !(await can(user, 'student:write', existing))) {
+      add('Roll Number', 'That student is not in the group you look after.');
     }
 
     if (mentorId && (!existing || existing.mentorId !== mentorId)) {
@@ -206,8 +209,8 @@ export const commit = async ({ rows, user, tx }) => {
     const batch = await batchFor(departmentRow.id, data.enrollmentYear, data.currentSemester);
 
     if (existing) {
-      if (user.role !== 'ADMIN' && existing.mentorId !== user.id) {
-        throw new ForbiddenError('That student is assigned to another mentor.');
+      if (!(await can(user, 'student:write', existing))) {
+        throw new ForbiddenError('That student is not in the group you look after.');
       }
 
       await tx.student.update({

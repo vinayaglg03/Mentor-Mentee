@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import api from '../services/api';
 import { downloadFile } from '../services/download';
+import { atLeast } from '../lib/permissions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
@@ -81,7 +82,8 @@ const StudentDetail = () => {
 
   const canEdit = useMemo(() => {
     if (!user || !student) return false;
-    return user.role === 'ADMIN' || (user.role === 'MENTOR' && student.mentorId === user.id);
+    // The server decides; this only hides controls that would 403.
+    return atLeast(user, 'COORDINATOR') || student.mentorId === user.id;
   }, [user, student]);
 
   const semesterChartData = useMemo(() => {

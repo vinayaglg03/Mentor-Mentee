@@ -1,5 +1,5 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent, NotFoundError } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere, loadScope, NotFoundError } from '../lib/access.js';
 import { streamToResponse } from '../lib/reports/pdf.js';
 import { loadMentoringReportData, buildMentoringReport } from '../lib/reports/mentoringReport.js';
 import { loadClassSummaryData, buildClassSummary } from '../lib/reports/classSummary.js';
@@ -7,6 +7,14 @@ import { buildAtRiskWorkbook, buildMarksSheetWorkbook, streamWorkbook } from '..
 import { requireDepartment, findDepartment } from '../lib/departments.js';
 
 const slug = (value) => String(value || '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+
+// Says on the page whose students the figures actually cover, so a scoped
+// report is never mistaken for a whole-class one.
+const scopeLabel = async (user) => {
+  const scope = await loadScope(user);
+  if (scope.role === 'SUPER_ADMIN' || scope.role === 'HOD') return null;
+  return scope.role === 'COORDINATOR' ? 'Your sections only' : 'Your mentees only';
+};
 
 // The document a mentor signs and files each semester.
 export const mentoringReport = async (req, res, next) => {
@@ -47,7 +55,7 @@ export const classSummary = async (req, res, next) => {
       academicYear: year,
       // A mentor only ever sees their own mentees, so say so on the page
       // rather than letting it read as a whole-class figure.
-      scopedTo: req.user.role === 'ADMIN' ? null : 'Your mentees only',
+      scopedTo: await scopeLabel(req.user),
     });
 
     streamToResponse(doc, res, `class-summary-${slug(departmentRow.code)}-sem${sem}-${year}.pdf`);
@@ -67,7 +75,7 @@ export const atRiskExport = async (req, res, next) => {
         status: 'ACTIVE',
         ...(departmentRow ? { departmentId: departmentRow.id } : {}),
         ...(sem ? { currentSemester: sem } : {}),
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
         semesterRecords: { some: { alerts: { some: { resolved: false } } } },
       },
       orderBy: { rollNumber: 'asc' },
@@ -110,7 +118,7 @@ export const marksSheetExport = async (req, res, next) => {
         status: 'ACTIVE',
         departmentId: departmentRow.id,
         currentSemester: sem,
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
       },
       orderBy: { rollNumber: 'asc' },
       select: {

@@ -1,11 +1,11 @@
 import prisma from '../prismaClient.js';
-import { assertMentorHasCapacity } from '../lib/access.js';
+import { assertMentorHasCapacity, studentScopeWhere, loadScope, assertCanAccessStudent } from '../lib/access.js';
 
 // GET all students across all years
 export const getAllStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) },
       include: {
         mentor: { select: { id: true, name: true } },
         semesterRecords: {
@@ -27,11 +27,32 @@ export const getAllStudents = async (req, res, next) => {
   }
 };
 
+// A mentor picking up an unassigned student is limited to their own
+// department, since mentorId is null for all of them and the usual scope
+// would return nothing.
+const unassignedScope = async (user) => {
+  const scope = await loadScope(user);
+
+  if (scope.role === 'SUPER_ADMIN') return {};
+  if (scope.role === 'COORDINATOR' && scope.sectionIds.length > 0) {
+    return { sectionId: { in: scope.sectionIds } };
+  }
+  return scope.departmentIds.length > 0
+    ? { departmentId: { in: scope.departmentIds } }
+    : {};
+};
+
 // GET unassigned students
 export const getUnassignedStudents = async (req, res, next) => {
   try {
+    // Unassigned students are still limited to what the caller may see, so a
+    // HOD cannot claim a student out of another department.
     const students = await prisma.student.findMany({
-      where: { status: 'ACTIVE', mentorId: null },
+      where: {
+        status: 'ACTIVE',
+        mentorId: null,
+        ...(await unassignedScope(req.user)),
+      },
       orderBy: { rollNumber: 'asc' }
     });
     res.json(students);
@@ -45,6 +66,8 @@ export const assignStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
     const { mentorId } = req.body;
+
+    await assertCanAccessStudent(req.user, studentId, 'student:assign');
 
     if (mentorId) {
       const mentor = await prisma.user.findUnique({ where: { id: mentorId } });
@@ -80,6 +103,7 @@ export const getAtRiskStudents = async (req, res, next) => {
     const atRisk = await prisma.student.findMany({
       where: {
         status: 'ACTIVE',
+        ...(await studentScopeWhere(req.user)),
         semesterRecords: {
           some: {
             alerts: {
@@ -109,7 +133,7 @@ export const getAtRiskStudents = async (req, res, next) => {
 export const getTopPerformers = async (req, res, next) => {
   try {
     const studentsWithRecords = await prisma.student.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) },
       include: { 
         semesterRecords: {
           include: { scores: true }
@@ -140,11 +164,18 @@ export const getTopPerformers = async (req, res, next) => {
   }
 };
 
+// Mentors are listed within the caller's department; a super admin sees all.
+const mentorScope = async (user) => {
+  const scope = await loadScope(user);
+  if (scope.role === 'SUPER_ADMIN' || scope.departmentIds.length === 0) return {};
+  return { departmentId: { in: scope.departmentIds } };
+};
+
 // GET all mentors
 export const getMentors = async (req, res, next) => {
   try {
     const mentors = await prisma.user.findMany({
-      where: { role: 'MENTOR' },
+      where: { role: 'MENTOR', ...(await mentorScope(req.user)) },
       include: {
         _count: {
           select: { students: { where: { status: 'ACTIVE' } } }

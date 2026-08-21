@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRoleAtLeast } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { assignStudentSchema } from '../schemas/hod.js';
 import { 
@@ -14,7 +14,8 @@ import {
 const router = express.Router();
 
 // Require completely authenticated Admin status for everything
-router.use(authenticateToken, requireRole('ADMIN'));
+// Coordinators and above; each handler scopes its own query.
+router.use(authenticateToken, requireRoleAtLeast('COORDINATOR'));
 
 router.get('/students', getAllStudents);
 router.get('/students/unassigned', getUnassignedStudents);

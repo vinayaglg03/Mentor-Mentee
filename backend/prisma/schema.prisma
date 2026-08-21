@@ -22,6 +22,7 @@ model User {
   students     Student[]     @relation("AssignedStudents")
   department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
   rollovers    SemesterRollover[] @relation("RolloverActor")
+  auditEntries AuditLog[]         @relation("AuditActor")
   headedDepartments Department[] @relation("DepartmentHod")
   coordinatedSections Section[]  @relation("SectionCoordinator")
 
@@ -255,6 +256,28 @@ model SemesterRollover {
   actor          User?    @relation("RolloverActor", fields: [actorId], references: [id])
 
   @@index([batchId])
+}
+
+// Append-only. Nothing in the application updates or deletes these rows;
+// the only removal is the retention job, which archives before it prunes.
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorRole  String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 // The grade scale is data, not code: colleges change it between regulation

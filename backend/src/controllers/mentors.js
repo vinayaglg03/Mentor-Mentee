@@ -1,7 +1,7 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent, assertCanAccessSemesterRecord, assertMentorHasCapacity } from '../lib/access.js';
 import { attendancePercent } from '../lib/scoring.js';
-import { loadScope, ForbiddenError } from '../lib/access.js';
+import { loadScope, ForbiddenError, NotFoundError } from '../lib/access.js';
 
 export const getMentors = async (req, res, next) => {
   try {
@@ -107,7 +107,7 @@ const withAttendancePercent = (student) => ({
 
 export const addProgressLog = async (req, res, next) => {
   try {
-    const { studentId, remark, semesterRecordId } = req.body;
+    const { studentId, remark, semesterRecordId, type, mode, actionItems, followUpDate, correctsId } = req.body;
     
     let targetSemId = semesterRecordId;
 
@@ -128,15 +128,122 @@ export const addProgressLog = async (req, res, next) => {
 
     if (!targetSemId) return res.status(400).json({ error: 'No semester record found for student' });
 
+    // A correction is a new entry pointing at the one it corrects; the
+    // original is never rewritten.
+    if (correctsId) {
+      const original = await prisma.progressLog.findUnique({
+        where: { id: correctsId },
+        select: { id: true, semesterRecordId: true },
+      });
+
+      if (!original || original.semesterRecordId !== targetSemId) {
+        return res.status(400).json({ error: 'The entry being corrected does not belong to this student.' });
+      }
+    }
+
     const log = await prisma.progressLog.create({
       data: {
         semesterRecordId: targetSemId,
         mentorId: req.user.id,
-        remark
+        remark,
+        ...(type ? { type } : {}),
+        ...(mode ? { mode } : {}),
+        actionItems: actionItems || null,
+        followUpDate: followUpDate ? new Date(followUpDate) : null,
+        correctsId: correctsId || null,
       }
     });
 
     res.status(201).json(log);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// The window in which an author may still fix their own wording. After it,
+// the record is append-only and a correction has to be a new entry - which is
+// what makes the log usable as evidence.
+export const EDIT_WINDOW_MINUTES = 24 * 60;
+
+export const updateProgressLog = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const log = await prisma.progressLog.findUnique({
+      where: { id },
+      select: { id: true, mentorId: true, createdAt: true, semesterRecordId: true },
+    });
+
+    if (!log) throw new NotFoundError('Progress log not found.');
+
+    if (log.mentorId !== req.user.id) {
+      throw new ForbiddenError('Only the author can edit a mentoring log.');
+    }
+
+    const ageMinutes = (Date.now() - new Date(log.createdAt).getTime()) / 60000;
+    if (ageMinutes > EDIT_WINDOW_MINUTES) {
+      return res.status(409).json({
+        error: 'This entry is more than 24 hours old and can no longer be edited. Add a correction instead.',
+        correctsId: log.id,
+      });
+    }
+
+    const { remark, type, mode, actionItems, followUpDate, studentAcknowledged } = req.body;
+
+    const updated = await prisma.progressLog.update({
+      where: { id },
+      data: {
+        ...(remark !== undefined ? { remark } : {}),
+        ...(type !== undefined ? { type } : {}),
+        ...(mode !== undefined ? { mode } : {}),
+        ...(actionItems !== undefined ? { actionItems: actionItems || null } : {}),
+        ...(followUpDate !== undefined ? { followUpDate: followUpDate ? new Date(followUpDate) : null } : {}),
+        ...(studentAcknowledged !== undefined ? { studentAcknowledged } : {}),
+      },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// The mentor's own follow-up list: overdue first, then the next fortnight.
+export const getFollowUps = async (req, res, next) => {
+  try {
+    const horizon = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    const logs = await prisma.progressLog.findMany({
+      where: {
+        mentorId: req.user.id,
+        followUpDate: { not: null, lte: horizon },
+        semesterRecord: { student: { status: 'ACTIVE' } },
+      },
+      orderBy: { followUpDate: 'asc' },
+      select: {
+        id: true,
+        followUpDate: true,
+        remark: true,
+        actionItems: true,
+        type: true,
+        semesterRecord: {
+          select: { semester: true, student: { select: { id: true, name: true, rollNumber: true } } },
+        },
+      },
+    });
+
+    const now = new Date();
+
+    res.json(logs.map(log => ({
+      id: log.id,
+      followUpDate: log.followUpDate,
+      overdue: new Date(log.followUpDate) < now,
+      type: log.type,
+      remark: log.remark,
+      actionItems: log.actionItems,
+      semester: log.semesterRecord.semester,
+      student: log.semesterRecord.student,
+    })));
   } catch (error) {
     next(error);
   }

@@ -5,6 +5,8 @@ import { backfillGpa } from '../jobs/backfillGpa.js';
 import { getGradeScale, replaceGradeScale } from '../controllers/gradeScale.js';
 import { validate } from '../middleware/validate.js';
 import { gradeScaleSchema } from '../schemas/gradeScale.js';
+import { previewPromotion, promoteBatch, listRollovers } from '../controllers/rollover.js';
+import { batchIdParamSchema, promoteBatchSchema } from '../schemas/rollover.js';
 
 const router = express.Router();
 
@@ -27,6 +29,11 @@ router.post('/jobs/backfill-gpa', async (req, res, next) => {
     next(error);
   }
 });
+
+// Semester rollover: preview first, then apply.
+router.post('/batches/:id/promote/preview', validate(batchIdParamSchema), previewPromotion);
+router.post('/batches/:id/promote', validate(promoteBatchSchema), promoteBatch);
+router.get('/batches/:id/rollovers', validate(batchIdParamSchema), listRollovers);
 
 router.get('/grade-scale', getGradeScale);
 router.put('/grade-scale', validate(gradeScaleSchema), replaceGradeScale);

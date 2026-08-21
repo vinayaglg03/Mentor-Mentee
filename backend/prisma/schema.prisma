@@ -21,6 +21,7 @@ model User {
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
   department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  rollovers    SemesterRollover[] @relation("RolloverActor")
   headedDepartments Department[] @relation("DepartmentHod")
   coordinatedSections Section[]  @relation("SectionCoordinator")
 
@@ -87,6 +88,7 @@ model Batch {
   department      Department @relation(fields: [departmentId], references: [id])
   sections        Section[]
   students        Student[]
+  rollovers       SemesterRollover[]
 
   @@unique([departmentId, admissionYear])
   @@index([departmentId])
@@ -233,6 +235,26 @@ model PendingImport {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// One record per promotion run: who ran it, when, and what it did. Also what
+// makes a second run safe - the run is keyed to the semester it started from.
+model SemesterRollover {
+  id             String   @id @default(uuid())
+  batchId        String
+  actorId        String?
+  fromSemester   Int
+  toSemester     Int
+  promoted       Int      @default(0)
+  graduated      Int      @default(0)
+  skipped        Int      @default(0)
+  details        Json?
+  createdAt      DateTime @default(now())
+
+  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  actor          User?    @relation("RolloverActor", fields: [actorId], references: [id])
+
+  @@index([batchId])
 }
 
 // The grade scale is data, not code: colleges change it between regulation

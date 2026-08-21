@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { can, atLeast } from '../lib/permissions';
-import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2, CalendarCheck, FileDown } from 'lucide-react';
+import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2, CalendarCheck, FileDown, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Sidebar.css';
 
@@ -29,6 +29,7 @@ const Sidebar = () => {
     { to: '/marks/entry', icon: Table2, label: 'Mark Entry' },
     { to: '/attendance/entry', icon: CalendarCheck, label: 'Attendance' },
     { to: '/import', icon: Upload, label: 'Bulk Import' },
+    can(user, 'batch:promote') && { to: '/batches', icon: Layers, label: 'Batches' },
     { to: '/reports', icon: FileDown, label: 'Reports' },
     { to: '/settings', icon: Settings, label: atLeast(user, 'HOD') ? 'System Settings' : 'Preferences' },
   ].filter(Boolean);

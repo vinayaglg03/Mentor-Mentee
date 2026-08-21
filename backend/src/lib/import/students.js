@@ -1,4 +1,5 @@
 import { ForbiddenError } from '../access.js';
+import { ensureDepartment, ensureBatch, normaliseCode } from '../departments.js';
 
 export const columns = [
   { key: 'name', header: 'Name', required: true, example: 'Asha Rao' },
@@ -161,7 +162,7 @@ export const validate = async ({ rows, user, prisma }) => {
       data: {
         name,
         rollNumber,
-        department,
+        department: normaliseCode(department),
         enrollmentYear,
         currentSemester,
         currentYear,
@@ -180,9 +181,29 @@ export const commit = async ({ rows, user, tx }) => {
   let created = 0;
   let updated = 0;
 
+  // Departments and batches are created once per file rather than per row.
+  const departments = new Map();
+  const batches = new Map();
+
+  const departmentFor = async (code) => {
+    if (!departments.has(code)) departments.set(code, await ensureDepartment(tx, code));
+    return departments.get(code);
+  };
+
+  const batchFor = async (departmentId, admissionYear, currentSemester) => {
+    const key = `${departmentId}|${admissionYear}`;
+    if (!batches.has(key)) {
+      batches.set(key, await ensureBatch(tx, { departmentId, admissionYear, currentSemester }));
+    }
+    return batches.get(key);
+  };
+
   for (const row of rows) {
     const { data } = row;
     const existing = await tx.student.findUnique({ where: { rollNumber: data.rollNumber } });
+
+    const departmentRow = await departmentFor(data.department);
+    const batch = await batchFor(departmentRow.id, data.enrollmentYear, data.currentSemester);
 
     if (existing) {
       if (user.role !== 'ADMIN' && existing.mentorId !== user.id) {
@@ -193,7 +214,9 @@ export const commit = async ({ rows, user, tx }) => {
         where: { id: existing.id },
         data: {
           name: data.name,
-          department: data.department,
+          department: departmentRow.code,
+          departmentId: departmentRow.id,
+          batchId: batch.id,
           enrollmentYear: data.enrollmentYear,
           currentSemester: data.currentSemester,
           currentYear: data.currentYear,
@@ -204,7 +227,9 @@ export const commit = async ({ rows, user, tx }) => {
       });
       updated++;
     } else {
-      const student = await tx.student.create({ data });
+      const student = await tx.student.create({
+        data: { ...data, departmentId: departmentRow.id, batchId: batch.id },
+      });
 
       // Marks and alerts hang off a semester record, so every student needs one.
       await tx.semesterRecord.create({

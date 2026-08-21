@@ -6,7 +6,7 @@ export { prisma };
 
 export const resetDatabase = async () => {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Subject", "User", "PendingImport", "GradeBand" RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Section", "Batch", "Subject", "Department", "User", "PendingImport", "GradeBand" RESTART IDENTITY CASCADE'
   );
 };
 
@@ -32,17 +32,55 @@ export const createUser = async ({ role = 'MENTOR', approved = true, maxStudents
   });
 };
 
-export const createStudent = async ({ mentorId = null, semester = 3, status = 'ACTIVE' } = {}) => {
+// Departments, batches and sections are created on demand so a test only
+// has to care about them when it is testing them.
+export const createDepartment = async ({ code = 'CSE', name } = {}) =>
+  prisma.department.upsert({
+    where: { code },
+    update: {},
+    create: { code, name: name || code },
+  });
+
+export const createBatch = async ({ departmentCode = 'CSE', admissionYear = 2024, currentSemester = 3 } = {}) => {
+  const department = await createDepartment({ code: departmentCode });
+  return prisma.batch.upsert({
+    where: { departmentId_admissionYear: { departmentId: department.id, admissionYear } },
+    update: {},
+    create: { departmentId: department.id, admissionYear, currentSemester },
+  });
+};
+
+export const createSection = async ({ batch, name = 'A', coordinatorId = null } = {}) => {
+  const target = batch || await createBatch();
+  return prisma.section.create({
+    data: { batchId: target.id, name, coordinatorId },
+  });
+};
+
+export const createStudent = async ({
+  mentorId = null,
+  semester = 3,
+  status = 'ACTIVE',
+  departmentCode = 'CSE',
+  admissionYear = 2024,
+  sectionId = null,
+} = {}) => {
   const id = unique();
+  const department = await createDepartment({ code: departmentCode });
+  const batch = await createBatch({ departmentCode, admissionYear, currentSemester: semester });
+
   const student = await prisma.student.create({
     data: {
       name: `Student ${id}`,
       rollNumber: `USN-${id}`,
-      department: 'CSE',
+      department: departmentCode,
+      departmentId: department.id,
+      batchId: batch.id,
+      sectionId,
       currentYear: 2,
       currentSemester: semester,
       currentAcademicYear: 2026,
-      enrollmentYear: 2024,
+      enrollmentYear: admissionYear,
       mentorId,
       status,
     },
@@ -55,10 +93,20 @@ export const createStudent = async ({ mentorId = null, semester = 3, status = 'A
   return { student, semesterRecord };
 };
 
-export const createSubject = async ({ semester = 3 } = {}) => {
+export const createSubject = async ({ semester = 3, departmentCode = 'CSE', credits = 3 } = {}) => {
   const id = unique();
+  const department = await createDepartment({ code: departmentCode });
+
   return prisma.subject.create({
-    data: { name: `Subject ${id}`, code: `SUB-${id}`, department: 'CSE', academicYear: 2026, semester },
+    data: {
+      name: `Subject ${id}`,
+      code: `SUB-${id}`,
+      department: departmentCode,
+      departmentId: department.id,
+      academicYear: 2026,
+      semester,
+      credits,
+    },
   });
 };
 

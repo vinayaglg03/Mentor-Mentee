@@ -11,6 +11,7 @@
     "start": "node index.js",
     "job:inactivity": "node src/jobs/inactivityCheck.js",
     "job:backfill-gpa": "node src/jobs/backfillGpa.js",
+    "report:departments": "node src/jobs/departmentReport.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

@@ -58,22 +58,25 @@ const MarksEntry = () => {
 
   const cellRefs = useRef({});
 
+  const [departments, setDepartments] = useState([]);
+
   useEffect(() => {
-    const fetchSubjects = async () => {
+    const load = async () => {
       try {
-        const { data } = await api.get('/subjects');
-        setSubjects(data);
+        // Departments come from the Department table, not from whatever
+        // strings happen to be on the subject rows.
+        const [subjectList, departmentList] = await Promise.all([
+          api.get('/subjects'),
+          api.get('/departments'),
+        ]);
+        setSubjects(subjectList.data);
+        setDepartments(departmentList.data);
       } catch {
-        setError('Could not load subjects.');
+        setError('Could not load subjects and departments.');
       }
     };
-    fetchSubjects();
+    load();
   }, []);
-
-  const departments = useMemo(
-    () => [...new Set(subjects.map(s => s.department).filter(Boolean))].sort(),
-    [subjects]
-  );
 
   const subjectOptions = useMemo(
     () => subjects.filter(s =>
@@ -279,7 +282,9 @@ const MarksEntry = () => {
             onChange={e => setFilters({ ...filters, department: e.target.value, subjectId: '' })}
           >
             <option value="">Select…</option>
-            {departments.map(department => <option key={department} value={department}>{department}</option>)}
+            {departments.map(department => (
+              <option key={department.id} value={department.code}>{department.code} — {department.name}</option>
+            ))}
           </select>
         </div>
 

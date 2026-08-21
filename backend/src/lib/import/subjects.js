@@ -1,3 +1,5 @@
+import { ensureDepartment, normaliseCode } from '../departments.js';
+
 export const columns = [
   { key: 'code', header: 'Code', required: true, example: 'CS301' },
   { key: 'name', header: 'Name', required: true, example: 'Data Structures' },
@@ -72,7 +74,7 @@ export const validate = async ({ rows, prisma }) => {
     prepared.push({
       rowNumber,
       action: rowErrors.length > 0 ? 'invalid' : byCode.has(code) ? 'update' : 'create',
-      data: { code, name, department, semester, credits, academicYear },
+      data: { code, name, department: normaliseCode(department), semester, credits, academicYear },
       display: { code, name, department, semester, credits },
     });
   }
@@ -84,15 +86,24 @@ export const commit = async ({ rows, tx }) => {
   let created = 0;
   let updated = 0;
 
+  const departments = new Map();
+
   for (const row of rows) {
     const { data } = row;
     const existing = await tx.subject.findUnique({ where: { code: data.code } });
 
+    if (!departments.has(data.department)) {
+      departments.set(data.department, await ensureDepartment(tx, data.department));
+    }
+    const departmentRow = departments.get(data.department);
+
+    const record = { ...data, department: departmentRow.code, departmentId: departmentRow.id };
+
     if (existing) {
-      await tx.subject.update({ where: { id: existing.id }, data });
+      await tx.subject.update({ where: { id: existing.id }, data: record });
       updated++;
     } else {
-      await tx.subject.create({ data });
+      await tx.subject.create({ data: record });
       created++;
     }
   }

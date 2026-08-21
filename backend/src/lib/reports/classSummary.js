@@ -10,11 +10,11 @@ const round = (value) => Math.round(value * 10) / 10;
 
 // Everything the HOD summary needs, scoped to the caller's mentees unless
 // they are an ADMIN.
-export const loadClassSummaryData = async ({ user, department, semester, academicYear }) => {
+export const loadClassSummaryData = async ({ user, departmentId, semester, academicYear }) => {
   const students = await prisma.student.findMany({
     where: {
       status: 'ACTIVE',
-      department,
+      departmentId,
       currentSemester: semester,
       ...(user.role === 'ADMIN' ? {} : { mentorId: user.id }),
     },

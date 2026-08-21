@@ -18,12 +18,15 @@ model User {
   maxStudents  Int           @default(30)
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
+  headedDepartments Department[] @relation("DepartmentHod")
+  coordinatedSections Section[]  @relation("SectionCoordinator")
 }
 
 model Student {
   id                  String           @id @default(uuid())
   name                String
   rollNumber          String           @unique
+  /// @deprecated Replaced by departmentId. Kept for one release so a rollback is possible.
   department          String
   currentYear         Int              @default(1)
   currentSemester     Int              @default(1)
@@ -35,10 +38,69 @@ model Student {
   mentorId            String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
+  departmentId        String
+  batchId             String
+  sectionId           String?
+
   mentor              User?            @relation("AssignedStudents", fields: [mentorId], references: [id])
+  departmentRef       Department       @relation(fields: [departmentId], references: [id])
+  batch               Batch            @relation(fields: [batchId], references: [id])
+  section             Section?         @relation(fields: [sectionId], references: [id])
   semesterRecords     SemesterRecord[]
 
   @@index([mentorId])
+  @@index([departmentId])
+  @@index([batchId])
+  @@index([sectionId])
+}
+
+// A department is the top-level tenant boundary: a HOD sees exactly one.
+model Department {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  hodId     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hod       User?     @relation("DepartmentHod", fields: [hodId], references: [id])
+  students  Student[]
+  subjects  Subject[]
+  batches   Batch[]
+}
+
+// One intake of students, e.g. CSE 2024. Promotion happens per batch.
+model Batch {
+  id              String   @id @default(uuid())
+  departmentId    String
+  admissionYear   Int
+  currentSemester Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  department      Department @relation(fields: [departmentId], references: [id])
+  sections        Section[]
+  students        Student[]
+
+  @@unique([departmentId, admissionYear])
+  @@index([departmentId])
+}
+
+model Section {
+  id            String   @id @default(uuid())
+  batchId       String
+  name          String
+  coordinatorId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  batch         Batch     @relation(fields: [batchId], references: [id])
+  coordinator   User?     @relation("SectionCoordinator", fields: [coordinatorId], references: [id])
+  students      Student[]
+
+  @@unique([batchId, name])
+  @@index([batchId])
+  @@index([coordinatorId])
 }
 
 model SemesterRecord {
@@ -66,12 +128,18 @@ model Subject {
   id           String  @id @default(uuid())
   name         String
   code         String  @unique
+  /// @deprecated Replaced by departmentId. Kept for one release so a rollback is possible.
   department   String
+  departmentId String
   academicYear Int
   semester     Int     @default(1)
   credits      Int     @default(3)
-  scores       Score[]
-  attendance   Attendance[]
+
+  departmentRef Department  @relation(fields: [departmentId], references: [id])
+  scores        Score[]
+  attendance    Attendance[]
+
+  @@index([departmentId])
 }
 
 model Achievement {

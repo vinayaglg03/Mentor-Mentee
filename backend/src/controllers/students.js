@@ -1,6 +1,7 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent } from '../lib/access.js';
 import { attendancePercent } from '../lib/scoring.js';
+import { ensureDepartment, ensureBatch, normaliseCode } from '../lib/departments.js';
 
 export const getAllStudents = async (req, res, next) => {
   try {
@@ -91,10 +92,21 @@ export const createStudent = async (req, res, next) => {
       const cAcadYear = parseInt(currentAcademicYear) || new Date().getFullYear();
       const eYear = parseInt(enrollmentYear) || new Date().getFullYear();
 
+      // The free-text department resolves to a real Department, and the
+      // student lands in the batch for their admission year.
+      const departmentRow = await ensureDepartment(tx, department);
+      const batch = await ensureBatch(tx, {
+        departmentId: departmentRow.id,
+        admissionYear: eYear,
+        currentSemester: cSem,
+      });
+
       const stdData = { 
         name, 
         rollNumber, 
-        department, 
+        department: normaliseCode(department), 
+        departmentId: departmentRow.id,
+        batchId: batch.id,
         currentYear: cYear, 
         currentSemester: cSem,
         currentAcademicYear: cAcadYear,
@@ -132,12 +144,16 @@ export const updateStudent = async (req, res, next) => {
 
     await assertCanAccessStudent(req.user, id);
 
+    const departmentRow = department
+      ? await ensureDepartment(prisma, department)
+      : null;
+
     const student = await prisma.student.update({
       where: { id },
       data: { 
         name, 
         rollNumber, 
-        department, 
+        ...(departmentRow ? { department: departmentRow.code, departmentId: departmentRow.id } : {}), 
         currentYear: currentYear ? Number(currentYear) : undefined, 
         currentSemester: currentSemester ? Number(currentSemester) : undefined,
         currentAcademicYear: currentAcademicYear ? Number(currentAcademicYear) : undefined,

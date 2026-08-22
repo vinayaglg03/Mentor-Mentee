@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node index.js",
     "job:inactivity": "node src/jobs/inactivityCheck.js",
+    "job:backfill-gpa": "node src/jobs/backfillGpa.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

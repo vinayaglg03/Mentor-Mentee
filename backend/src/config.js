@@ -32,6 +32,13 @@ if (errors.length > 0) {
 
 const config = {
   databaseUrl: DATABASE_URL,
+  // Printed at the top of every exported report.
+  college: {
+    name: process.env.COLLEGE_NAME || 'Your College Name',
+    address: process.env.COLLEGE_ADDRESS || '',
+    department: process.env.COLLEGE_DEPARTMENT || '',
+    logoPath: process.env.COLLEGE_LOGO_PATH || '',
+  },
   databaseSsl: process.env.DATABASE_SSL === 'true',
   jwtSecret: JWT_SECRET,
   port,

@@ -1,5 +1,6 @@
 import { ForbiddenError } from '../access.js';
 import { validateMarks, computeScore, saveScore } from '../scoring.js';
+import { updateGpaForSemesterRecords } from '../gpa.js';
 
 export const columns = [
   { key: 'rollNumber', header: 'Roll Number', required: true, example: '1AB22CS001' },
@@ -214,6 +215,8 @@ export const commit = async ({ rows, user, tx }) => {
 
     updated++;
   }
+
+  await updateGpaForSemesterRecords(tx, [...recordCache.values()].map(record => record.id));
 
   return { created: 0, updated };
 };

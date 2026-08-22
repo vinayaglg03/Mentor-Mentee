@@ -11,6 +11,7 @@ import StudentDetail from './pages/StudentDetail';
 import ImportPage from './pages/ImportPage';
 import MarksEntry from './pages/MarksEntry';
 import AttendanceEntry from './pages/AttendanceEntry';
+import ReportsPage from './pages/ReportsPage';
 
 import LandingPage from './pages/LandingPage';
 
@@ -69,6 +70,12 @@ const AppRoutes = () => {
         <Route path="/attendance/entry" element={
           <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
             <AttendanceEntry />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <ReportsPage />
           </ProtectedRoute>
         } />
 

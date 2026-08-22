@@ -1,6 +1,7 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent } from '../lib/access.js';
 import { validateMarks, saveScore } from '../lib/scoring.js';
+import { updateGpaForSemesterRecords } from '../lib/gpa.js';
 
 // Finds the semester record a set of marks belongs to, creating it on first use.
 const resolveSemesterRecord = async (client, { studentId, semester, academicYear }) => {
@@ -31,14 +32,19 @@ export const submitScore = async (req, res, next) => {
 
     const semesterRecord = await resolveSemesterRecord(prisma, { studentId, semester: sem, academicYear: year });
 
-    const score = await saveScore(prisma, {
-      semesterRecordId: semesterRecord.id,
-      semester: sem,
-      subjectId,
-      test1,
-      test2,
-      assignment,
-      exam,
+    const score = await prisma.$transaction(async (tx) => {
+      const saved = await saveScore(tx, {
+        semesterRecordId: semesterRecord.id,
+        semester: sem,
+        subjectId,
+        test1,
+        test2,
+        assignment,
+        exam,
+      });
+
+      await updateGpaForSemesterRecords(tx, [semesterRecord.id]);
+      return saved;
     });
 
     res.json(score);
@@ -78,6 +84,7 @@ export const submitScoresBulk = async (req, res, next) => {
 
     const saved = await prisma.$transaction(async (tx) => {
       const results = [];
+      const touchedRecords = new Set();
 
       for (const row of rows) {
         const semesterRecord = await resolveSemesterRecord(tx, {
@@ -97,7 +104,13 @@ export const submitScoresBulk = async (req, res, next) => {
         });
 
         results.push({ studentId: row.studentId, scoreId: score.id, finalScore: score.finalScore });
+        touchedRecords.add(semesterRecord.id);
       }
+
+      // One pass at the end rather than per row: a class of 60 shares very
+      // few semester records between them, but a student never gets
+      // recomputed twice in the same save.
+      await updateGpaForSemesterRecords(tx, [...touchedRecords]);
 
       return results;
     }, { timeout: 30000, maxWait: 10000 });

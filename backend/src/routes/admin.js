@@ -1,6 +1,10 @@
 import express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { runInactivityCheck } from '../jobs/inactivityCheck.js';
+import { backfillGpa } from '../jobs/backfillGpa.js';
+import { getGradeScale, replaceGradeScale } from '../controllers/gradeScale.js';
+import { validate } from '../middleware/validate.js';
+import { gradeScaleSchema } from '../schemas/gradeScale.js';
 
 const router = express.Router();
 
@@ -14,5 +18,17 @@ router.post('/jobs/inactivity-check', async (req, res, next) => {
     next(error);
   }
 });
+
+router.post('/jobs/backfill-gpa', async (req, res, next) => {
+  try {
+    const result = await backfillGpa();
+    res.json({ message: 'GPA backfill complete', ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/grade-scale', getGradeScale);
+router.put('/grade-scale', validate(gradeScaleSchema), replaceGradeScale);
 
 export default router;

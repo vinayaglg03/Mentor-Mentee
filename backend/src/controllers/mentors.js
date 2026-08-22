@@ -1,11 +1,19 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent, assertCanAccessSemesterRecord, assertMentorHasCapacity } from '../lib/access.js';
 import { attendancePercent } from '../lib/scoring.js';
+import { loadScope, ForbiddenError } from '../lib/access.js';
 
 export const getMentors = async (req, res, next) => {
   try {
+    const scope = await loadScope(req.user);
+
     const mentors = await prisma.user.findMany({
-      where: { role: 'MENTOR' },
+      where: {
+        role: 'MENTOR',
+        ...(scope.role === 'SUPER_ADMIN' || scope.departmentIds.length === 0
+          ? {}
+          : { departmentId: { in: scope.departmentIds } }),
+      },
       select: {
         id: true,
         name: true,
@@ -46,10 +54,33 @@ export const getAssignedStudents = async (req, res, next) => {
 
 // Students that no mentor has claimed yet. Mentors need this to claim
 // mentees; the HOD version of the same list lives in controllers/hod.js.
+// Unassigned students have no mentorId, so the usual scope would return
+// nothing. A mentor may claim from their own department, a coordinator from
+// their sections, a super admin from anywhere.
+//
+// A mentor with no department is not restricted: we have no department to
+// restrict them to, and blocking them would stop every mentor claiming until
+// somebody filled that field in.
+const claimableScope = async (user) => {
+  const scope = await loadScope(user);
+
+  if (scope.role === 'SUPER_ADMIN') return {};
+  if (scope.role === 'COORDINATOR' && scope.sectionIds.length > 0) {
+    return { sectionId: { in: scope.sectionIds } };
+  }
+  return scope.departmentIds.length > 0
+    ? { departmentId: { in: scope.departmentIds } }
+    : {};
+};
+
 export const getUnassignedStudents = async (req, res, next) => {
   try {
     const students = await prisma.student.findMany({
-      where: { status: 'ACTIVE', mentorId: null },
+      where: {
+        status: 'ACTIVE',
+        mentorId: null,
+        ...(await claimableScope(req.user)),
+      },
       orderBy: { rollNumber: 'asc' }
     });
     res.json(students);
@@ -171,8 +202,19 @@ export const addAchievement = async (req, res, next) => {
 export const claimStudent = async (req, res, next) => {
   try {
     const { studentId } = req.body;
-    const student = await prisma.student.findUnique({ where: { id: studentId } });
-    if (!student) return res.status(404).json({ error: 'Student not found' });
+    const claimable = await claimableScope(req.user);
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, ...claimable },
+    });
+
+    if (!student) {
+      // Either it does not exist or it is outside the caller's department;
+      // both are a refusal rather than a hint that it exists.
+      const exists = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true } });
+      if (exists) throw new ForbiddenError('That student is not in the group you look after.');
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
     if (student.mentorId) return res.status(400).json({ error: 'Student is already assigned to a mentor.' });
 
     await assertMentorHasCapacity(req.user.id);

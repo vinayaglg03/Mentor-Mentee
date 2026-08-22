@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { requireDepartment, ensureDepartment } from '../lib/departments.js';
+import { assertCan, NotFoundError } from '../lib/access.js';
 
 export const createSubject = async (req, res, next) => {
   try {
@@ -11,6 +12,8 @@ export const createSubject = async (req, res, next) => {
     }
 
     const departmentRow = await ensureDepartment(prisma, department);
+    await assertCan(req.user, 'subject:write', { departmentId: departmentRow.id },
+      'You can only manage subjects in your own department.');
 
     const subject = await prisma.subject.create({
       data: { 
@@ -33,7 +36,15 @@ export const updateSubject = async (req, res, next) => {
     const { id } = req.params;
     const { name, code, department, academicYear, semester } = req.body;
 
+    const current = await prisma.subject.findUnique({ where: { id }, select: { departmentId: true } });
+    if (!current) throw new NotFoundError('Subject not found.');
+    await assertCan(req.user, 'subject:write', current, 'You can only manage subjects in your own department.');
+
     const departmentRow = department ? await ensureDepartment(prisma, department) : null;
+    if (departmentRow) {
+      await assertCan(req.user, 'subject:write', { departmentId: departmentRow.id },
+        'You can only move a subject into your own department.');
+    }
 
     const subject = await prisma.subject.update({
       where: { id },
@@ -54,6 +65,10 @@ export const updateSubject = async (req, res, next) => {
 export const deleteSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    const current = await prisma.subject.findUnique({ where: { id }, select: { departmentId: true } });
+    if (!current) throw new NotFoundError('Subject not found.');
+    await assertCan(req.user, 'subject:write', current, 'You can only manage subjects in your own department.');
     await prisma.subject.delete({ where: { id } });
     res.json({ message: 'Subject deleted successfully' });
   } catch (error) {

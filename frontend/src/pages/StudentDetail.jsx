@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import api from '../services/api';
 import { downloadFile } from '../services/download';
+import { atLeast } from '../lib/permissions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown, History
 } from 'lucide-react';
 import './StudentDetail.css';
 import './MarksEntry.css';
@@ -42,6 +43,8 @@ const StudentDetail = () => {
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [activity, setActivity] = useState(null);
+  const [activityError, setActivityError] = useState('');
   const [newLog, setNewLog] = useState('');
   const [newAchievement, setNewAchievement] = useState({ title: '', description: '' });
   const [newScore, setNewScore] = useState({ 
@@ -81,7 +84,8 @@ const StudentDetail = () => {
 
   const canEdit = useMemo(() => {
     if (!user || !student) return false;
-    return user.role === 'ADMIN' || (user.role === 'MENTOR' && student.mentorId === user.id);
+    // The server decides; this only hides controls that would 403.
+    return atLeast(user, 'COORDINATOR') || student.mentorId === user.id;
   }, [user, student]);
 
   const semesterChartData = useMemo(() => {
@@ -170,6 +174,16 @@ const StudentDetail = () => {
 
     return records.length > 0 ? records[records.length - 1].cgpa : null;
   }, [student]);
+
+  const loadActivity = async () => {
+    setActivityError('');
+    try {
+      const { data } = await api.get(`/audit/student/${id}`);
+      setActivity(data.entries);
+    } catch {
+      setActivityError('Could not load the change history.');
+    }
+  };
 
   // The signed, filed semester document - one click, no options to get wrong.
   const downloadReport = async () => {
@@ -484,6 +498,40 @@ const StudentDetail = () => {
                         </div>
                       ))}
                       {(!selectedRecord.achievements || selectedRecord.achievements.length === 0) && <p className="empty">No achievements noted.</p>}
+                    </div>
+                  </div>
+
+                  <div className="card mb-4">
+                    <div className="card-header flex-between">
+                      <h3><History size={18} /> Activity</h3>
+                      {activity === null && (
+                        <button className="btn btn-outline btn-sm" type="button" onClick={loadActivity}>
+                          Show change history
+                        </button>
+                      )}
+                    </div>
+                    <div className="card-body">
+                      {activityError && <p className="text-muted" style={{ fontSize: '13px', color: 'var(--danger)' }}>{activityError}</p>}
+                      {activity === null && !activityError && (
+                        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>
+                          Every change to this student's marks, attendance, alerts and logs, with who made it and when.
+                        </p>
+                      )}
+                      {activity !== null && activity.length === 0 && (
+                        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>Nothing recorded yet.</p>
+                      )}
+                      {activity !== null && activity.length > 0 && (
+                        <ul className="activity-list">
+                          {activity.map(entry => (
+                            <li key={entry.id}>
+                              <span className="activity-when">
+                                {new Date(entry.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                              </span>
+                              <span className="activity-what">{entry.summary}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
 

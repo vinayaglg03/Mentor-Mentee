@@ -1,4 +1,4 @@
-import { ForbiddenError } from '../access.js';
+import { ForbiddenError, can } from '../access.js';
 import { validateAttendance, saveAttendance, attendancePercent } from '../scoring.js';
 
 export const columns = [
@@ -38,7 +38,7 @@ export const validate = async ({ rows, user, prisma }) => {
   const [students, subjects] = await Promise.all([
     prisma.student.findMany({
       where: { rollNumber: { in: rollNumbers } },
-      select: { id: true, rollNumber: true, name: true, mentorId: true, status: true },
+      select: { id: true, rollNumber: true, name: true, mentorId: true, status: true, departmentId: true, sectionId: true },
     }),
     prisma.subject.findMany({
       where: { code: { in: subjectCodes } },
@@ -73,8 +73,8 @@ export const validate = async ({ rows, user, prisma }) => {
       add('Roll Number', 'No student with that Roll Number.');
     } else if (student.status !== 'ACTIVE') {
       add('Roll Number', `${rollNumber} is marked ${student.status.toLowerCase()}.`);
-    } else if (user.role !== 'ADMIN' && student.mentorId !== user.id) {
-      add('Roll Number', 'That student is not one of your mentees.');
+    } else if (!(await can(user, 'student:write', student))) {
+      add('Roll Number', 'That student is not in the group you look after.');
     }
 
     if (!subjectCode) {
@@ -149,14 +149,12 @@ export const commit = async ({ rows, user, tx }) => {
   const studentIds = [...new Set(rows.map(row => row.data.studentId))];
   const students = await tx.student.findMany({
     where: { id: { in: studentIds } },
-    select: { id: true, mentorId: true },
+    select: { id: true, mentorId: true, departmentId: true, sectionId: true },
   });
 
-  if (user.role !== 'ADMIN') {
-    for (const student of students) {
-      if (student.mentorId !== user.id) {
-        throw new ForbiddenError('That student is not one of your mentees.');
-      }
+  for (const student of students) {
+    if (!(await can(user, 'student:write', student))) {
+      throw new ForbiddenError('That student is not in the group you look after.');
     }
   }
 

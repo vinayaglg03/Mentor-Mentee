@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, authHeader, createHod, createSuperAdmin } from './helpers.js';
 
 beforeEach(resetDatabase);
 afterAll(() => prisma.$disconnect());
@@ -61,26 +61,51 @@ describe('admin user administration', () => {
     const res = await request(app)
       .post('/api/auth/users')
       .set(authHeader(mentor))
-      .send({ name: 'New HOD', email: 'hod@example.edu', password: 'PasswordLongEnough', role: 'ADMIN' });
+      .send({ name: 'New HOD', email: 'hod@example.edu', password: 'PasswordLongEnough', role: 'HOD' });
 
     expect(res.status).toBe(403);
   });
 
-  it('creates an approved user with an explicit role for an admin', async () => {
-    const admin = await createUser({ role: 'ADMIN' });
+  it('lets a HOD create an approved mentor', async () => {
+    const admin = await createHod();
 
     const res = await request(app)
       .post('/api/auth/users')
       .set(authHeader(admin))
-      .send({ name: 'New HOD', email: 'hod@example.edu', password: 'PasswordLongEnough', role: 'ADMIN' });
+      .send({ name: 'New Mentor', email: 'mentor2@example.edu', password: 'PasswordLongEnough', role: 'MENTOR' });
 
     expect(res.status).toBe(201);
-    expect(res.body.user.role).toBe('ADMIN');
+    expect(res.body.user.role).toBe('MENTOR');
     expect(res.body.user.approved).toBe(true);
   });
 
+  it('stops a HOD minting another HOD or a super admin', async () => {
+    const admin = await createHod();
+
+    for (const role of ['HOD', 'SUPER_ADMIN']) {
+      const res = await request(app)
+        .post('/api/auth/users')
+        .set(authHeader(admin))
+        .send({ name: role, email: `${role.toLowerCase()}@example.edu`, password: 'PasswordLongEnough', role });
+
+      expect(res.status).toBe(403);
+    }
+  });
+
+  it('lets a super admin create a HOD', async () => {
+    const superAdmin = await createSuperAdmin();
+
+    const res = await request(app)
+      .post('/api/auth/users')
+      .set(authHeader(superAdmin))
+      .send({ name: 'New HOD', email: 'hod@example.edu', password: 'PasswordLongEnough', role: 'HOD' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.role).toBe('HOD');
+  });
+
   it('lists and approves pending users', async () => {
-    const admin = await createUser({ role: 'ADMIN' });
+    const admin = await createHod();
     const pending = await createUser({ approved: false });
 
     const list = await request(app).get('/api/auth/users/pending').set(authHeader(admin));

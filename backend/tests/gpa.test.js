@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader, createHod } from './helpers.js';
 import { gradeFor, weightedAverage, DEFAULT_BANDS } from '../src/lib/gpa.js';
 import { backfillGpa } from '../src/jobs/backfillGpa.js';
 
@@ -17,7 +17,7 @@ beforeEach(async () => {
   await resetDatabase();
   await seedGradeBands();
   mentor = await createUser({ role: 'MENTOR', maxStudents: 100 });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
 });
 
 afterAll(() => prisma.$disconnect());

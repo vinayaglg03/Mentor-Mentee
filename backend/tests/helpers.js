@@ -6,7 +6,7 @@ export { prisma };
 
 export const resetDatabase = async () => {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Section", "Batch", "Subject", "Department", "User", "PendingImport", "GradeBand" RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Section", "Batch", "Subject", "Department", "User", "PendingImport", "GradeBand", "SemesterRollover", "AuditLog" RESTART IDENTITY CASCADE'
   );
 };
 
@@ -18,8 +18,16 @@ export const authHeader = (user) => ({ Authorization: `Bearer ${tokenFor(user)}`
 let counter = 0;
 const unique = () => `${Date.now()}-${counter++}`;
 
-export const createUser = async ({ role = 'MENTOR', approved = true, maxStudents = 30, password = 'Password123' } = {}) => {
+export const createUser = async ({
+  role = 'MENTOR',
+  approved = true,
+  maxStudents = 30,
+  password = 'Password123',
+  departmentCode = null,
+} = {}) => {
   const id = unique();
+  const department = departmentCode ? await createDepartment({ code: departmentCode }) : null;
+
   return prisma.user.create({
     data: {
       name: `User ${id}`,
@@ -28,8 +36,25 @@ export const createUser = async ({ role = 'MENTOR', approved = true, maxStudents
       role,
       approved,
       maxStudents,
+      departmentId: department?.id ?? null,
     },
   });
+};
+
+// A HOD is only useful once they have a department to be head of.
+export const createHod = async ({ departmentCode = 'CSE' } = {}) => {
+  const department = await createDepartment({ code: departmentCode });
+  const hod = await createUser({ role: 'HOD', departmentCode });
+  await prisma.department.update({ where: { id: department.id }, data: { hodId: hod.id } });
+  return hod;
+};
+
+export const createSuperAdmin = () => createUser({ role: 'SUPER_ADMIN' });
+
+export const createCoordinator = async ({ section }) => {
+  const coordinator = await createUser({ role: 'COORDINATOR' });
+  await prisma.section.update({ where: { id: section.id }, data: { coordinatorId: coordinator.id } });
+  return coordinator;
 };
 
 // Departments, batches and sections are created on demand so a test only
@@ -37,7 +62,7 @@ export const createUser = async ({ role = 'MENTOR', approved = true, maxStudents
 export const createDepartment = async ({ code = 'CSE', name } = {}) =>
   prisma.department.upsert({
     where: { code },
-    update: {},
+    update: name ? { name } : {},
     create: { code, name: name || code },
   });
 

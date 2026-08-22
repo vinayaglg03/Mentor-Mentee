@@ -3,6 +3,8 @@ import { getImporter } from '../lib/import/index.js';
 import { parseSpreadsheet, ImportError } from '../lib/import/parse.js';
 import { buildTemplate } from '../lib/import/template.js';
 import { NotFoundError, ForbiddenError } from '../lib/access.js';
+import { unauditedPrisma } from '../prismaClient.js';
+import { currentActor } from '../lib/audit.js';
 
 // A parsed file is held for this long between preview and commit.
 const PENDING_TTL_MINUTES = 30;
@@ -133,6 +135,24 @@ export const commit = async (req, res, next) => {
     );
 
     await prisma.pendingImport.delete({ where: { id: pending.id } });
+
+    const actor = currentActor();
+    await unauditedPrisma.auditLog.create({
+      data: {
+        actorId: actor?.id ?? null,
+        actorRole: actor?.role ?? null,
+        action: `import.${importer.type}`,
+        entityType: 'Import',
+        entityId: pending.id,
+        after: {
+          fileName: pending.fileName,
+          summary: pending.summary,
+          ...result,
+        },
+        ip: actor?.ip ?? null,
+        userAgent: actor?.userAgent ?? null,
+      },
+    });
 
     res.json({
       message: `${importer.label} imported successfully`,

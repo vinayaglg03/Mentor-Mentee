@@ -1,15 +1,14 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere, can } from '../lib/access.js';
 import { attendancePercent } from '../lib/scoring.js';
 import { ensureDepartment, ensureBatch, normaliseCode } from '../lib/departments.js';
 
 export const getAllStudents = async (req, res, next) => {
   try {
-    // Mentors only ever see their own mentees; HODs see everyone.
+    // Scope comes from lib/access.js: a mentor sees their mentees, a
+    // coordinator their sections, a HOD their department, a super admin all.
     // Students who left the programme are excluded from listings.
-    const where = req.user.role === 'ADMIN'
-      ? { status: 'ACTIVE' }
-      : { status: 'ACTIVE', mentorId: req.user.id };
+    const where = { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) };
 
     const students = await prisma.student.findMany({
       where,
@@ -160,7 +159,8 @@ export const updateStudent = async (req, res, next) => {
         enrollmentYear: enrollmentYear ? Number(enrollmentYear) : undefined,
         email,
         // Only a HOD may move a student to a different mentor.
-        mentorId: req.user.role === 'ADMIN' ? mentorId : undefined
+        // Only a coordinator or above may move a student to another mentor.
+        mentorId: (await can(req.user, 'student:assign')) ? mentorId : undefined
       }
     });
     res.json(student);

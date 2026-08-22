@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, authHeader, createHod } from './helpers.js';
 
 beforeEach(resetDatabase);
 afterAll(() => prisma.$disconnect());
@@ -39,7 +39,7 @@ describe('maxStudents cap', () => {
   });
 
   it('stops a HOD assigning past the limit', async () => {
-    const admin = await createUser({ role: 'ADMIN' });
+    const admin = await createHod();
     const mentor = await createUser({ role: 'MENTOR', maxStudents: 1 });
     await createStudent({ mentorId: mentor.id });
     const free = await createStudent();
@@ -53,7 +53,7 @@ describe('maxStudents cap', () => {
   });
 
   it('still allows re-saving a student against the mentor they already have', async () => {
-    const admin = await createUser({ role: 'ADMIN' });
+    const admin = await createHod();
     const mentor = await createUser({ role: 'MENTOR', maxStudents: 1 });
     const own = await createStudent({ mentorId: mentor.id });
 

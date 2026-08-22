@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
 import { can, atLeast } from '../lib/access.js';
+import { withActor } from '../lib/audit.js';
 
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -13,7 +14,18 @@ export const authenticateToken = (req, res, next) => {
     // authorisation one - the client logs out and asks for credentials again.
     if (err) return res.sendStatus(401);
     req.user = user;
-    next();
+
+    // Everything downstream runs inside this context, so the audit extension
+    // knows who is writing without any controller passing an actor around.
+    withActor(
+      {
+        id: user.id,
+        role: user.role,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'] ?? null,
+      },
+      next
+    );
   });
 };
 

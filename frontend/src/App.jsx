@@ -13,6 +13,7 @@ import ImportPage from './pages/ImportPage';
 import MarksEntry from './pages/MarksEntry';
 import AttendanceEntry from './pages/AttendanceEntry';
 import ReportsPage from './pages/ReportsPage';
+import BatchesPage from './pages/BatchesPage';
 
 import LandingPage from './pages/LandingPage';
 
@@ -71,6 +72,12 @@ const AppRoutes = () => {
         <Route path="/attendance/entry" element={
           <ProtectedRoute require="student:read">
             <AttendanceEntry />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/batches" element={
+          <ProtectedRoute require="batch:promote">
+            <BatchesPage />
           </ProtectedRoute>
         } />
 

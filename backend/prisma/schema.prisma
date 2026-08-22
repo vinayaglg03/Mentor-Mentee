@@ -21,6 +21,8 @@ model User {
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
   department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  rollovers    SemesterRollover[] @relation("RolloverActor")
+  auditEntries AuditLog[]         @relation("AuditActor")
   headedDepartments Department[] @relation("DepartmentHod")
   coordinatedSections Section[]  @relation("SectionCoordinator")
 
@@ -87,6 +89,7 @@ model Batch {
   department      Department @relation(fields: [departmentId], references: [id])
   sections        Section[]
   students        Student[]
+  rollovers       SemesterRollover[]
 
   @@unique([departmentId, admissionYear])
   @@index([departmentId])
@@ -233,6 +236,48 @@ model PendingImport {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// One record per promotion run: who ran it, when, and what it did. Also what
+// makes a second run safe - the run is keyed to the semester it started from.
+model SemesterRollover {
+  id             String   @id @default(uuid())
+  batchId        String
+  actorId        String?
+  fromSemester   Int
+  toSemester     Int
+  promoted       Int      @default(0)
+  graduated      Int      @default(0)
+  skipped        Int      @default(0)
+  details        Json?
+  createdAt      DateTime @default(now())
+
+  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  actor          User?    @relation("RolloverActor", fields: [actorId], references: [id])
+
+  @@index([batchId])
+}
+
+// Append-only. Nothing in the application updates or deletes these rows;
+// the only removal is the retention job, which archives before it prunes.
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorRole  String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 // The grade scale is data, not code: colleges change it between regulation

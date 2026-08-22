@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent } from '../lib/access.js';
+import { attendancePercent } from '../lib/scoring.js';
 
 export const getAllStudents = async (req, res, next) => {
   try {
@@ -43,6 +44,7 @@ export const getStudentById = async (req, res, next) => {
           orderBy: { semester: 'desc' },
           include: {
             scores: { include: { subject: true } },
+            attendance: { include: { subject: { select: { id: true, code: true, name: true } } } },
             alerts: { orderBy: { timestamp: 'desc' } },
             achievements: { orderBy: { createdAt: 'desc' } },
             progressLogs: { orderBy: { date: 'desc' }, include: { mentor: { select: { name: true } } } }
@@ -53,7 +55,19 @@ export const getStudentById = async (req, res, next) => {
 
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    res.json(student);
+    res.json({
+      ...student,
+      semesterRecords: student.semesterRecords.map(record => {
+        const rows = record.attendance || [];
+        const classesHeld = rows.reduce((sum, row) => sum + row.classesHeld, 0);
+        const classesAttended = rows.reduce((sum, row) => sum + row.classesAttended, 0);
+
+        return {
+          ...record,
+          attendancePercent: attendancePercent({ classesHeld, classesAttended }),
+        };
+      }),
+    });
   } catch (error) {
     next(error);
   }

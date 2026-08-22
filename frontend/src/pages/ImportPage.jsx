@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import api from '../services/api';
+import { downloadFile } from '../services/download';
 import './ImportPage.css';
 
 const IMPORT_TYPES = [
@@ -18,6 +19,11 @@ const IMPORT_TYPES = [
     key: 'marks',
     label: 'Marks',
     blurb: 'CIE, assignment and exam marks per student per subject. Alerts are raised automatically.',
+  },
+  {
+    key: 'attendance',
+    label: 'Attendance',
+    blurb: 'Classes held and attended per subject. Below 75% raises a high alert.',
   },
 ];
 
@@ -61,15 +67,7 @@ const ImportPage = () => {
   const downloadTemplate = async () => {
     setError('');
     try {
-      const { data } = await api.get(`/import/${type}/template`, { responseType: 'blob' });
-      const url = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `amis-${type}-template.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      await downloadFile(`/import/${type}/template`, undefined, `amis-${type}-template.xlsx`);
     } catch {
       setError('Could not download the template.');
     }

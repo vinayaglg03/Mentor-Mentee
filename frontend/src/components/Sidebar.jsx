@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
-import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2 } from 'lucide-react';
+import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2, CalendarCheck, FileDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Sidebar.css';
 
@@ -19,14 +19,18 @@ const Sidebar = () => {
     { to: '/hod/registry', icon: Users, label: 'Student Registry' },
     { to: '/hod/mentors', icon: GraduationCap, label: 'Mentor Network' },
     { to: '/marks/entry', icon: Table2, label: 'Mark Entry' },
+    { to: '/attendance/entry', icon: CalendarCheck, label: 'Attendance' },
     { to: '/import', icon: Upload, label: 'Bulk Import' },
+    { to: '/reports', icon: FileDown, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'System Settings' },
   ] : [
     { to: '/mentor/dashboard', icon: Users, label: 'My Mentees' },
     { to: '/progress-logs', icon: FileText, label: 'Academic Logs' },
     { to: '/alerts', icon: Bell, label: 'Security Alerts' },
     { to: '/marks/entry', icon: Table2, label: 'Mark Entry' },
+    { to: '/attendance/entry', icon: CalendarCheck, label: 'Attendance' },
     { to: '/import', icon: Upload, label: 'Bulk Import' },
+    { to: '/reports', icon: FileDown, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Preferences' },
   ];
 

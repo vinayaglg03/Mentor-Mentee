@@ -2,17 +2,27 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import api from '../services/api';
+import { downloadFile } from '../services/download';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown
 } from 'lucide-react';
 import './StudentDetail.css';
+import './MarksEntry.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
+
+// Matches the thresholds the alert engine uses.
+const attendanceClass = (percent) => {
+  if (percent === null || percent === undefined) return '';
+  if (percent < 75) return 'attendance-critical';
+  if (percent < 85) return 'attendance-warning';
+  return 'attendance-ok';
+};
 
 const StudentDetail = () => {
   const { user } = useAuth();
@@ -31,6 +41,7 @@ const StudentDetail = () => {
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   const [newLog, setNewLog] = useState('');
   const [newAchievement, setNewAchievement] = useState({ title: '', description: '' });
   const [newScore, setNewScore] = useState({ 
@@ -113,28 +124,18 @@ const StudentDetail = () => {
     // Sort ascending for chronological trend
     const chronologicalRecords = [...student.semesterRecords].sort((a, b) => a.semester - b.semester);
     
-    const labels = [];
-    const averages = [];
-    
-    chronologicalRecords.forEach(record => {
-      labels.push(`Sem ${record.semester}`);
-      const scores = record.scores || [];
-      if (scores.length > 0) {
-        const sum = scores.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
-        averages.push(sum / scores.length);
-      } else {
-        averages.push(null);
-      }
-    });
+    const labels = chronologicalRecords.map(record => `Sem ${record.semester}`);
+    const sgpa = chronologicalRecords.map(record => record.sgpa ?? null);
+    const cgpa = chronologicalRecords.map(record => record.cgpa ?? null);
 
-    if (averages.every(avg => avg === null)) return null;
+    if (sgpa.every(value => value === null)) return null;
 
     return {
       labels,
       datasets: [
         {
-          label: 'Average Score',
-          data: averages,
+          label: 'SGPA',
+          data: sgpa,
           borderColor: '#4696DA',
           backgroundColor: 'rgba(70, 150, 218, 0.2)',
           fill: true,
@@ -143,20 +144,59 @@ const StudentDetail = () => {
           pointBorderColor: '#4696DA',
           pointBorderWidth: 2,
           pointRadius: 4,
+        },
+        {
+          label: 'CGPA',
+          data: cgpa,
+          borderColor: '#047857',
+          backgroundColor: 'rgba(4, 120, 87, 0.08)',
+          fill: false,
+          tension: 0.4,
+          borderDash: [6, 4],
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#047857',
+          pointBorderWidth: 2,
+          pointRadius: 3,
         }
       ]
     };
   }, [student]);
 
+  // The cumulative figure stored against the most recent semester.
+  const currentCgpa = useMemo(() => {
+    const records = [...(student?.semesterRecords || [])]
+      .filter(record => record.cgpa !== null && record.cgpa !== undefined)
+      .sort((a, b) => (a.academicYear - b.academicYear) || (a.semester - b.semester));
+
+    return records.length > 0 ? records[records.length - 1].cgpa : null;
+  }, [student]);
+
+  // The signed, filed semester document - one click, no options to get wrong.
+  const downloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      await downloadFile(
+        `/reports/student/${id}/mentoring.pdf`,
+        undefined,
+        `mentoring-report-${student?.rollNumber || id}.pdf`
+      );
+    } catch {
+      alert('Could not produce the report.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const progressionOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 11 } } },
       tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
     },
     scales: {
-      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' } },
+      // Grade points, not marks.
+      y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' } },
       x: { grid: { display: false } }
     }
   };
@@ -259,17 +299,28 @@ const StudentDetail = () => {
             </div>
           </div>
           <div className="profile-stats">
-            <div className="radial-progress">
-              {/* Optional: Add a CSS radial progress for overall GPA/Attendance */}
-            </div>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={downloadReport}
+              disabled={downloadingReport}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+            >
+              <FileDown size={16} /> {downloadingReport ? 'Preparing…' : 'Mentoring report'}
+            </button>
           </div>
         </motion.div>
 
         <div className="metrics-grid">
           <div className="card stat-card">
-            <label>GPA Prediction</label>
-            <div className="value">{((selectedRecord?.scores || []).reduce((a,b)=>a+(b.finalScore||0),0) / ((selectedRecord?.scores || []).length||1) / 10).toFixed(2)}</div>
+            <label>SGPA (Sem {selectedRecord?.semester ?? '—'})</label>
+            <div className="value">{selectedRecord?.sgpa ?? '—'}</div>
             <TrendingUp size={20} color="var(--success)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
+          </div>
+          <div className="card stat-card">
+            <label>Current CGPA</label>
+            <div className="value">{currentCgpa ?? '—'}</div>
+            <GraduationCap size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
             <label>Active Alerts</label>
@@ -284,15 +335,17 @@ const StudentDetail = () => {
             <Trophy size={20} color="var(--info)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
-            <label>Credits Earned</label>
-            <div className="value">{(selectedRecord?.scores?.length || 0) * 4}</div>
+            <label>Attendance</label>
+            <div className={`value ${attendanceClass(selectedRecord?.attendancePercent)}`}>
+              {selectedRecord?.attendancePercent == null ? '—' : `${selectedRecord.attendancePercent}%`}
+            </div>
             <Book size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
         </div>
 
         <div className="card mb-4" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h3><TrendingUp size={18} /> Academic Progression</h3>
+            <h3><TrendingUp size={18} /> SGPA and CGPA by Semester</h3>
           </div>
           <div className="card-body" style={{ height: '300px' }}>
             {!progressionChartData || !progressionChartData.labels || progressionChartData.labels.length === 0 ? (
@@ -358,6 +411,49 @@ const StudentDetail = () => {
                 </div>
 
                 <div className="right-col">
+                  <div className="card mb-4">
+                    <div className="card-header">
+                      <h3><CalendarCheck size={18} /> Attendance by Subject</h3>
+                    </div>
+                    <div className="card-body">
+                      {(selectedRecord?.attendance || []).length === 0 ? (
+                        <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+                          No attendance recorded for this semester yet.
+                        </p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Held</th>
+                                <th>Attended</th>
+                                <th>Percentage</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(selectedRecord.attendance || []).map(row => {
+                                const percent = row.classesHeld > 0
+                                  ? Math.round((row.classesAttended / row.classesHeld) * 1000) / 10
+                                  : null;
+                                return (
+                                  <tr key={row.id}>
+                                    <td><strong>{row.subject?.code}</strong> {row.subject?.name}</td>
+                                    <td>{row.classesHeld}</td>
+                                    <td>{row.classesAttended}</td>
+                                    <td className={attendanceClass(percent)}>
+                                      {percent === null ? '—' : `${percent}%`}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="card mb-4">
                     <div className="card-header">
                       <h3><AlertCircle size={18} /> Intelligence Alerts</h3>

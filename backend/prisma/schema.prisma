@@ -56,6 +56,7 @@ model SemesterRecord {
   achievements Achievement[]
   alerts       Alert[]
   progressLogs ProgressLog[]
+  attendance   Attendance[]
 
   @@unique([studentId, semester, academicYear])
   @@index([studentId])
@@ -70,6 +71,7 @@ model Subject {
   semester     Int     @default(1)
   credits      Int     @default(3)
   scores       Score[]
+  attendance   Attendance[]
 }
 
 model Achievement {
@@ -99,6 +101,25 @@ model Score {
   subject          Subject        @relation(fields: [subjectId], references: [id])
 
   @@unique([semesterRecordId, subjectId])
+}
+
+// Classes held and attended for one subject in one semester. Eligibility
+// rules (75% / 85%) are what most at-risk conversations actually hinge on.
+model Attendance {
+  id               String         @id @default(uuid())
+  semesterRecordId String
+  subjectId        String
+  classesHeld      Int
+  classesAttended  Int
+  asOfDate         DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id])
+
+  @@unique([semesterRecordId, subjectId])
+  @@index([semesterRecordId])
 }
 
 model Alert {
@@ -138,6 +159,19 @@ model PendingImport {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// The grade scale is data, not code: colleges change it between regulation
+// schemes, and an ADMIN can edit the bands without a redeploy.
+model GradeBand {
+  id         String   @id @default(uuid())
+  label      String   @unique
+  minScore   Float
+  gradePoint Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([minScore])
 }
 
 enum Role {

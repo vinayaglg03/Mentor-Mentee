@@ -1,0 +1,49 @@
+.inline-edit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.4rem;
+  margin: -0.15rem -0.4rem;
+  font: inherit;
+  color: inherit;
+  cursor: text;
+  text-align: left;
+}
+
+.inline-edit-trigger svg { opacity: 0; color: var(--fg-muted); flex-shrink: 0; }
+
+.inline-edit-trigger:hover {
+  border-color: var(--border-color);
+  background: #f8fafc;
+}
+
+.inline-edit-trigger:hover svg { opacity: 1; }
+
+.inline-edit-trigger:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+}
+
+.inline-edit-trigger:focus-visible svg { opacity: 1; }
+
+.inline-edit-trigger.is-saving { opacity: 0.6; }
+
+.inline-edit-empty { color: var(--fg-muted); font-style: italic; }
+
+.inline-edit-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.inline-edit-field .input-control {
+  padding: 0.25rem 0.45rem;
+  font-size: inherit;
+  width: 100%;
+}
+
+.inline-edit-static { color: inherit; }

@@ -1,0 +1,103 @@
+.global-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f4f7fa;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  min-width: 260px;
+  max-width: 420px;
+  flex: 1;
+}
+
+.global-search:focus-within {
+  background: white;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.global-search-icon { color: var(--fg-muted); flex-shrink: 0; }
+
+.global-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  width: 100%;
+  min-width: 0;
+}
+
+.global-search-hint {
+  font-size: 11px;
+  color: var(--fg-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  background: white;
+}
+
+.global-search-clear {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  display: flex;
+  padding: 0.15rem;
+}
+
+.global-search-results {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 500;
+}
+
+.global-search-results li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.global-search-results li.is-highlighted { background: #eff6ff; }
+
+.global-search-roll { font-weight: 700; }
+.global-search-name { }
+
+.global-search-meta {
+  grid-column: 1 / -1;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.global-search-alert { color: var(--danger); font-weight: 600; }
+
+.global-search-empty {
+  padding: 0.75rem 0.6rem;
+  color: var(--fg-muted);
+  font-size: 13px;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .global-search { min-width: 0; }
+  .global-search-hint { display: none; }
+}

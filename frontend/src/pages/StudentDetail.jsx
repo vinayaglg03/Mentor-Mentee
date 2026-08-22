@@ -4,6 +4,8 @@ import { useAuth } from '../context/useAuth';
 import api from '../services/api';
 import { downloadFile } from '../services/download';
 import { atLeast } from '../lib/permissions';
+import InlineEdit from '../components/InlineEdit';
+import { useToast } from '../components/useToast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
@@ -45,6 +47,14 @@ const StudentDetail = () => {
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState('');
+  const toast = useToast();
+
+  // Single-field edits happen where the value is, not in a modal.
+  const saveField = async (field, value) => {
+    const { data } = await api.put(`/students/${id}`, { [field]: value });
+    setStudent(current => ({ ...current, ...data }));
+    toast.success('Saved.');
+  };
   const [newLog, setNewLog] = useState('');
   const [newAchievement, setNewAchievement] = useState({ title: '', description: '' });
   const [newScore, setNewScore] = useState({ 
@@ -305,7 +315,14 @@ const StudentDetail = () => {
             <button onClick={() => navigate(-1)} className="btn-back-glass" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '50%', marginBottom: '1.5rem', cursor: 'pointer' }}>
               <ArrowLeft size={20} />
             </button>
-            <h1>{student.name}</h1>
+            <h1>
+              <InlineEdit
+                value={student.name}
+                label="student name"
+                disabled={!canEdit}
+                onSave={(value) => saveField('name', value)}
+              />
+            </h1>
             <div className="profile-meta">
               <span><Hash size={16} /> {student.rollNumber}</span>
               <span><Briefcase size={16} /> {student.department}</span>

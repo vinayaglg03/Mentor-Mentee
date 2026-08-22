@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Bell, HelpCircle } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 import { useAuth } from '../context/useAuth';
+import GlobalSearch from './GlobalSearch';
 import './TopBar.css';
 
 const TopBar = () => {
@@ -9,10 +10,8 @@ const TopBar = () => {
 
   return (
     <header className="topbar">
-      <div className="topbar-search">
-        <Search size={18} className="text-muted" />
-        <input type="text" placeholder="Search for students, subjects or analytics..." />
-      </div>
+      {/* Was a decorative input that did nothing. */}
+      <GlobalSearch />
       
       <div className="topbar-actions">
         <button className="icon-btn">

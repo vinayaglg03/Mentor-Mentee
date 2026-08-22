@@ -6,6 +6,9 @@ import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSqu
 import AlertItem from '../components/AlertItem';
 import { can } from '../lib/permissions';
 import EmptyState from '../components/EmptyState';
+import AttentionPanel from '../components/AttentionPanel';
+import { SkeletonTable } from '../components/Skeleton';
+import { useToast } from '../components/useToast';
 import './MarksEntry.css';
 
 const LOG_TYPES = [
@@ -50,6 +53,11 @@ const MentorDashboard = () => {
   const [newLogText, setNewLogText] = useState('');
   const [newLog, setNewLog] = useState({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
   const [followUps, setFollowUps] = useState([]);
+  // The dashboard opens on what needs doing; the full list is one tab away.
+  const [tab, setTab] = useState('attention');
+  const [attention, setAttention] = useState(null);
+  const [attentionLoading, setAttentionLoading] = useState(true);
+  const toast = useToast();
   
   const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({ 
@@ -62,6 +70,7 @@ const MentorDashboard = () => {
   useEffect(() => {
     fetchStudents();
     fetchFollowUps();
+    fetchAttention();
   }, []);
 
   const errorMessage = (err, fallback) => err.response?.data?.error || fallback;
@@ -76,6 +85,18 @@ const MentorDashboard = () => {
       setPageError(errorMessage(err, 'Could not load your mentees.'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAttention = async () => {
+    setAttentionLoading(true);
+    try {
+      const { data } = await api.get('/mentors/attention');
+      setAttention(data);
+    } catch (err) {
+      toast.error(err, 'Could not work out what needs your attention.');
+    } finally {
+      setAttentionLoading(false);
     }
   };
 
@@ -99,7 +120,7 @@ const MentorDashboard = () => {
       const { data } = await api.get('/mentors/follow-ups');
       setFollowUps(data);
     } catch (err) {
-      console.error(err);
+      toast.error(err, 'Could not load your follow-ups.');
     }
   };
 
@@ -146,9 +167,9 @@ const MentorDashboard = () => {
       setEditingStudent(null);
       setNewStudent({ name: '', rollNumber: '', department: '', currentYear: '1', currentSemester: '1', currentAcademicYear: new Date().getFullYear(), enrollmentYear: new Date().getFullYear(), email: '' });
       fetchStudents();
-      alert(`Student ${editingStudent ? 'updated' : 'created'} successfully`);
+      toast.success(`Student ${editingStudent ? 'updated' : 'created'}.`);
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to process student");
+      toast.error(err, 'Could not save that student.');
     }
   };
 
@@ -157,8 +178,8 @@ const MentorDashboard = () => {
     try {
       await api.delete(`/students/${id}`);
       fetchStudents();
-    } catch {
-      alert("Failed to delete student. Only admins can delete students.");
+    } catch (err) {
+      toast.error(err, 'Could not remove that student.');
     }
   };
 
@@ -172,9 +193,9 @@ const MentorDashboard = () => {
       });
       setShowSubjectModal(false);
       setNewSubject({ name: '', code: '', department: '', academicYear: new Date().getFullYear(), semester: '1' });
-      alert("Subject created successfully");
+      toast.success('Subject created.');
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to create subject. Ensure code is unique.");
+      toast.error(err, 'Could not create that subject. Check the code is unique.');
     }
   };
 
@@ -245,8 +266,41 @@ const MentorDashboard = () => {
         </button>
       </div>
 
+      <div className="dash-tabs" role="tablist" aria-label="Dashboard views">
+        <button
+          role="tab"
+          type="button"
+          id="tab-attention"
+          aria-selected={tab === 'attention'}
+          aria-controls="panel-attention"
+          className={`dash-tab ${tab === 'attention' ? 'is-active' : ''}`}
+          onClick={() => setTab('attention')}
+        >
+          Needs attention
+          {attention?.total > 0 && <span className="dash-tab-count" aria-live="polite">{attention.total}</span>}
+        </button>
+        <button
+          role="tab"
+          type="button"
+          id="tab-all"
+          aria-selected={tab === 'all'}
+          aria-controls="panel-all"
+          className={`dash-tab ${tab === 'all' ? 'is-active' : ''}`}
+          onClick={() => setTab('all')}
+        >
+          All mentees
+          <span className="dash-tab-count">{(students || []).length}</span>
+        </button>
+      </div>
+
+      {tab === 'attention' && (
+        <div id="panel-attention" role="tabpanel" aria-labelledby="tab-attention">
+          <AttentionPanel data={attention} loading={attentionLoading} />
+        </div>
+      )}
+
       {/* Alerts Panel */}
-      <div className="card mt-4">
+      <div className="card mt-4" hidden={tab !== 'all'}>
         <div className="card-header flex-between">
           <h3>Current Alerts <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>{activeAlerts.length}</span></h3>
         </div>
@@ -273,7 +327,7 @@ const MentorDashboard = () => {
       </div>
 
       {/* Follow-ups due */}
-      <div className="card mt-4">
+      <div className="card mt-4" hidden={tab !== 'all'}>
         <div className="card-header flex-between">
           <h3>
             Follow-ups due{' '}
@@ -324,7 +378,7 @@ const MentorDashboard = () => {
       </div>
 
       {/* Students Table */}
-      <div className="card mt-4" style={{ padding: 0 }}>
+      <div id="panel-all" role="tabpanel" aria-labelledby="tab-all" hidden={tab !== 'all'} className="card mt-4" style={{ padding: 0 }}>
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
             <h3>My Assigned Students</h3>
@@ -342,7 +396,7 @@ const MentorDashboard = () => {
         </div>
         <div className="card-body mt-2">
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center' }} className="text-muted">Loading mentees...</div>
+            <SkeletonTable rows={6} columns={6} label="Loading your mentees" />
           ) : (
             <div className="table-responsive">
               <table className="data-table">

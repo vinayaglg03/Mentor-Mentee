@@ -1,12 +1,16 @@
 import express from 'express';
 import { getAllStudents, getStudentById, createStudent, updateStudent, deleteStudent } from '../controllers/students.js';
 import { authenticateToken, requireRoleAtLeast, requirePermission } from '../middleware/auth.js';
+import { search } from '../controllers/attention.js';
 import { validate } from '../middleware/validate.js';
 import { createStudentSchema, updateStudentSchema, studentIdParamSchema } from '../schemas/students.js';
 
 const router = express.Router();
 
 router.use(authenticateToken); // Protect all student routes
+
+// Must come before /:id or the search term is read as an id.
+router.get('/search', search);
 
 router.get('/', getAllStudents);
 router.get('/:id', validate(studentIdParamSchema), getStudentById);

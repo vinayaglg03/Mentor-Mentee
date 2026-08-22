@@ -18,7 +18,7 @@ const DATA_CACHE = `amis-data-${VERSION}`;
 const QUEUE_DB = 'amis-write-queue';
 const QUEUE_STORE = 'requests';
 
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg'];
+const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

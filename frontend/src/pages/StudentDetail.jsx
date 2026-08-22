@@ -7,8 +7,7 @@ import { atLeast } from '../lib/permissions';
 import InlineEdit from '../components/InlineEdit';
 import { useToast } from '../components/useToast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar } from '../components/Charts';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
@@ -17,7 +16,6 @@ import {
 import './StudentDetail.css';
 import './MarksEntry.css';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 // Matches the thresholds the alert engine uses.
 const attendanceClass = (percent) => {

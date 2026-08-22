@@ -32,13 +32,17 @@ const DashboardLayout = ({ children }) => {
               Ask an administrator to assign you one.
             </div>
           )}
-          <AnimatePresence mode="wait">
+          {/* No `mode="wait"`: it held the incoming page back until the
+              outgoing one had finished leaving, which cost 600ms on every
+              navigation before a single request went out. Opacity only —
+              a `y` offset animates layout, not just the compositor. */}
+          <AnimatePresence>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
             >
               {children}
             </motion.div>

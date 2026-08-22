@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap');
+/* Fonts are requested from index.html so the browser can start the
+   connection without waiting for this file. */
 
 :root {
   /* AMIS Core Palette - Refined */
@@ -175,12 +176,17 @@ h1, h2, h3, h4, h5, h6 {
   background: white;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-light);
-  overflow: hidden;
+  /* Was `overflow: hidden`, which clipped the right-hand columns of every
+     table with no scrollbar and no way to reach them. */
+  overflow-x: auto;
   box-shadow: var(--shadow-card);
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
   width: 100%;
+  /* Below this the columns crush into each other; scroll instead. */
+  min-width: 640px;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -310,6 +316,8 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 767px) {
   .table-responsive { overflow-x: visible; }
+
+  .data-table.table-cards { min-width: 0; }
 
   .data-table.table-cards,
   .data-table.table-cards thead,

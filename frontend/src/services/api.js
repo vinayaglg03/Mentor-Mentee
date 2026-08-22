@@ -14,37 +14,75 @@ if (!configuredURL) {
 
 const baseURL = configuredURL || DEFAULT_API_URL;
 
+export const apiRoot = baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`;
+
 const api = axios.create({
-  baseURL: baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`,
+  baseURL: apiRoot,
+  // The refresh token is an httpOnly cookie, so every call has to carry it.
+  withCredentials: true,
 });
 
-// Request interceptor for API calls
+// The access token is held here, in memory only. It is deliberately not in
+// localStorage: anything that can run script on the page can read that, and
+// a token in memory dies with the tab.
+let accessToken = null;
+let onSessionLost = null;
+
+export const setAccessToken = (token) => { accessToken = token; };
+export const getAccessToken = () => accessToken;
+export const onSessionExpired = (handler) => { onSessionLost = handler; };
+
+// A single refresh in flight, shared by every request that gets a 401, so a
+// page with six panels does not fire six refreshes.
+let refreshInFlight = null;
+
+export const refreshSession = async () => {
+  if (!refreshInFlight) {
+    refreshInFlight = axios
+      .post(`${apiRoot}/auth/refresh`, {}, { withCredentials: true })
+      .then(({ data }) => {
+        accessToken = data.token;
+        return data;
+      })
+      .finally(() => { refreshInFlight = null; });
+  }
+
+  return refreshInFlight;
+};
+
 api.interceptors.request.use(
-  async config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
-  error => {
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const status = error.response?.status;
+
+    // 401 means the access token has expired: refresh once and replay. A 403
+    // means signed in but not allowed, and the caller shows an inline error
+    // rather than being kicked out of the app.
+    if (status === 401 && original && !original.__retried && !original.url?.includes('/auth/refresh')) {
+      original.__retried = true;
+
+      try {
+        await refreshSession();
+        return api(original);
+      } catch {
+        accessToken = null;
+        if (onSessionLost) onSessionLost();
+      }
+    }
+
     return Promise.reject(error);
   }
 );
-
-// Response interceptor for API calls
-api.interceptors.response.use((response) => {
-  return response
-}, async function (error) {
-  // 401 means the session is gone, so log out. A 403 means the user is
-  // signed in but not allowed to do this one thing - the caller shows an
-  // inline error instead of being kicked out of the app.
-  if (error.response?.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  }
-  return Promise.reject(error);
-});
 
 export default api;

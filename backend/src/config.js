@@ -30,6 +30,22 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+const passwordLoginEnabled = process.env.AUTH_PASSWORD_ENABLED === 'true';
+const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+
+// One of the two has to work, or nobody can sign in.
+if (!passwordLoginEnabled && !googleClientId) {
+  errors.push(
+    'No way to sign in: set GOOGLE_CLIENT_ID (and GOOGLE_CLIENT_SECRET) for Google sign-in, ' +
+    'or AUTH_PASSWORD_ENABLED=true for password login.'
+  );
+}
+
+if (googleClientId && !googleClientSecret) {
+  errors.push('GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set.');
+}
+
 const config = {
   databaseUrl: DATABASE_URL,
   // Where the app is reachable, used for links in emails.
@@ -44,6 +60,34 @@ const config = {
     user: process.env.SMTP_USER || '',
     password: process.env.SMTP_PASSWORD || '',
     apiKey: process.env.RESEND_API_KEY || '',
+  },
+  auth: {
+    // Password login is off once Google sign-in works. A SUPER_ADMIN can
+    // always use it as a break-glass route - see allowPasswordLogin below.
+    passwordLoginEnabled,
+    // Minutes. Short, because the access token lives in browser memory and
+    // is refreshed silently.
+    accessTokenMinutes: Number(process.env.ACCESS_TOKEN_MINUTES || 15),
+    // Days. The refresh token is an httpOnly cookie and rotates on use.
+    refreshTokenDays: Number(process.env.REFRESH_TOKEN_DAYS || 30),
+    cookieName: process.env.REFRESH_COOKIE_NAME || 'amis_refresh',
+    // Off in development because localhost is not https.
+    cookieSecure: process.env.COOKIE_SECURE === 'true',
+    // 'lax' is right when the API and the app share a registrable domain.
+    // Set 'none' (with COOKIE_SECURE=true) only if they genuinely differ.
+    cookieSameSite: process.env.COOKIE_SAMESITE || 'lax',
+    cookieDomain: process.env.COOKIE_DOMAIN || undefined,
+  },
+  google: {
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
+    // Must match the redirect URI registered in the Google Cloud console.
+    redirectUri: process.env.GOOGLE_REDIRECT_URI
+      || `http://localhost:${process.env.PORT || 5000}/api/auth/google/callback`,
+    // Only accounts in these Workspace domains may sign in. Empty means any
+    // Google account, which you almost certainly do not want in production.
+    allowedDomains: (process.env.ALLOWED_EMAIL_DOMAINS || '')
+      .split(',').map(entry => entry.trim().toLowerCase()).filter(Boolean),
   },
   notifications: {
     // A HIGH alert older than this appears in the HOD's weekly digest.

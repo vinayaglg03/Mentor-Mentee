@@ -6,7 +6,7 @@ export { prisma };
 
 export const resetDatabase = async () => {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Section", "Batch", "Subject", "Department", "User", "PendingImport", "GradeBand", "SemesterRollover", "AuditLog" RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE "ProgressLog", "Achievement", "Alert", "Attendance", "Score", "SemesterRecord", "Student", "Section", "Batch", "Subject", "Department", "User", "PendingImport", "GradeBand", "SemesterRollover", "AuditLog", "RefreshToken" RESTART IDENTITY CASCADE'
   );
 };
 

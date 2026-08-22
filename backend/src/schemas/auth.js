@@ -30,7 +30,14 @@ export const createUserSchema = {
 };
 
 export const approveUserSchema = {
-  params: z.object({ id: uuid })
+  params: z.object({ id: uuid }),
+  body: z.object({
+    // A HOD may hand out MENTOR and COORDINATOR; only a SUPER_ADMIN may
+    // create another HOD, which the controller enforces.
+    role: z.enum(['SUPER_ADMIN', 'HOD', 'COORDINATOR', 'MENTOR']).optional(),
+    departmentId: uuid.optional(),
+    sectionId: uuid.optional(),
+  }).optional().default({})
 };
 
 export const setUserDepartmentSchema = {

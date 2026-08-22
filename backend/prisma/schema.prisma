@@ -10,7 +10,10 @@ model User {
   id           String        @id @default(uuid())
   name         String
   email        String        @unique
-  password     String
+  // Null for accounts that only ever sign in with Google.
+  password     String?
+  googleId     String?       @unique
+  avatarUrl    String?
   role         Role          @default(MENTOR)
   approved     Boolean       @default(false)
   // The department a HOD heads, or the one a coordinator/mentor belongs to.
@@ -26,6 +29,7 @@ model User {
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
   department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  refreshTokens RefreshToken[]
   rollovers    SemesterRollover[] @relation("RolloverActor")
   auditEntries AuditLog[]         @relation("AuditActor")
   headedDepartments Department[] @relation("DepartmentHod")
@@ -313,6 +317,29 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId])
   @@index([createdAt])
+}
+
+// One row per issued refresh token. Rotation replaces the row rather than
+// extending it, so a stolen token that is replayed after rotation is
+// detectable: the whole family is revoked.
+model RefreshToken {
+  id           String    @id @default(uuid())
+  userId       String
+  // Only the hash is stored; the token itself exists in the user's cookie.
+  tokenHash    String    @unique
+  family       String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([family])
+  @@index([expiresAt])
 }
 
 // The grade scale is data, not code: colleges change it between regulation

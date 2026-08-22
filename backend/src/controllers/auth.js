@@ -1,21 +1,32 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import prisma from '../prismaClient.js';
 import config from '../config.js';
 import { assertCan, ForbiddenError } from '../lib/access.js';
+import {
+  startSession, rotateRefreshToken, revokeToken, revokeAllForUser,
+  refreshCookieFrom, setRefreshCookie, clearRefreshCookie,
+} from '../lib/sessions.js';
 
-const signToken = (user) =>
-  jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    config.jwtSecret,
-    { expiresIn: '24h' }
-  );
+// Password login is switched off once Google sign-in is working, except for
+// a SUPER_ADMIN: somebody has to be able to get in when Google is the thing
+// that is broken.
+const allowPasswordLogin = (user) =>
+  config.auth.passwordLoginEnabled || user.role === 'SUPER_ADMIN';
 
-// Public self-registration. Always creates an unapproved MENTOR:
+// Public self-registration, only when password login is on. With Google
+// sign-in there is nothing to register: the first sign-in creates the
+// account and a HOD approves it.
+// Always creates an unapproved MENTOR:
 // the role is never taken from the request body, and an HOD must approve
 // the account before it can log in.
 export const register = async (req, res, next) => {
   try {
+    if (!config.auth.passwordLoginEnabled) {
+      return res.status(403).json({
+        error: 'Registration is handled by your college Google account. Use "Continue with Google".',
+      });
+    }
+
     const { name, email, password } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -145,12 +156,43 @@ export const setUserRole = async (req, res, next) => {
 export const approveUser = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { role, departmentId, sectionId } = req.body ?? {};
+
     await assertCanAdminister(req.user, id);
+
+    // Approving somebody is also where they get their place in the college:
+    // a role, a department, and a section if they are a coordinator.
+    if (role === 'SUPER_ADMIN' || role === 'HOD') {
+      await assertCan(req.user, 'user:role', null, 'Only a super admin can grant that role.');
+    }
+
+    if (departmentId) {
+      await assertCan(req.user, 'user:manage', { departmentId },
+        'You can only place people in your own department.');
+    }
+
+    if (sectionId) {
+      const section = await prisma.section.findUnique({
+        where: { id: sectionId },
+        select: { id: true, batch: { select: { departmentId: true } } },
+      });
+
+      if (!section) throw new ForbiddenError('That section does not exist.');
+
+      await assertCan(req.user, 'user:manage', { departmentId: section.batch.departmentId },
+        'You can only assign sections in your own department.');
+
+      await prisma.section.update({ where: { id: sectionId }, data: { coordinatorId: id } });
+    }
 
     const user = await prisma.user.update({
       where: { id },
-      data: { approved: true },
-      select: { id: true, name: true, email: true, role: true, approved: true }
+      data: {
+        approved: true,
+        ...(role ? { role } : {}),
+        ...(departmentId ? { departmentId } : {}),
+      },
+      select: { id: true, name: true, email: true, role: true, approved: true, departmentId: true }
     });
     res.json({ message: 'User approved successfully', user });
   } catch (error) {
@@ -163,7 +205,7 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
@@ -172,22 +214,79 @@ export const login = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    if (!allowPasswordLogin(user)) {
+      return res.status(403).json({
+        error: 'Password sign-in is disabled here. Use your college Google account.',
+      });
+    }
+
     if (!user.approved) {
       return res.status(403).json({ error: 'Your account is awaiting approval by your HOD.' });
     }
 
-    const token = signToken(user);
+    const session = await startSession(res, user, {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
+
+    res.json({ message: 'Logged in successfully', ...session });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Called on page load and whenever the access token expires. Rotates the
+// refresh cookie every time.
+export const refresh = async (req, res, next) => {
+  try {
+    const result = await rotateRefreshToken(refreshCookieFrom(req), {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
+
+    setRefreshCookie(res, result.refreshToken);
 
     res.json({
-      message: 'Logged in successfully',
-      token,
+      token: result.accessToken,
+      expiresInMinutes: config.auth.accessTokenMinutes,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        departmentId: user.departmentId
-      }
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+        departmentId: result.user.departmentId,
+        approved: result.user.approved,
+        avatarUrl: result.user.avatarUrl,
+      },
+    });
+  } catch (error) {
+    // A failed refresh always clears the cookie, so a broken session cannot
+    // wedge the client in a retry loop.
+    clearRefreshCookie(res);
+    next(error);
+  }
+};
+
+export const logout = async (req, res, next) => {
+  try {
+    await revokeToken(refreshCookieFrom(req));
+    clearRefreshCookie(res);
+    res.json({ message: 'Signed out.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// "Sign out everywhere": every device holding a refresh token for this
+// account loses it at its next refresh, within the access token lifetime.
+export const logoutEverywhere = async (req, res, next) => {
+  try {
+    const result = await revokeAllForUser(req.user.id);
+    clearRefreshCookie(res);
+
+    res.json({
+      message: `Signed out of ${result.count} session(s). Other devices will be signed out within ${config.auth.accessTokenMinutes} minutes.`,
+      sessions: result.count,
     });
   } catch (error) {
     next(error);

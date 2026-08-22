@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, me, createUser, getPendingUsers, approveUser, setUserDepartment, setUserRole } from '../controllers/auth.js';
+import { register, login, refresh, logout, logoutEverywhere, me, createUser, getPendingUsers, approveUser, setUserDepartment, setUserRole } from '../controllers/auth.js';
+import { authConfig, startGoogleSignIn, googleCallback } from '../controllers/googleAuth.js';
 import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { registerSchema, loginSchema, createUserSchema, approveUserSchema, setUserDepartmentSchema, setUserRoleSchema } from '../schemas/auth.js';
@@ -18,8 +19,23 @@ const authLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
 });
 
+// What the sign-in screen should offer.
+router.get('/config', authConfig);
+
+// Google sign-in: the browser is redirected here and comes back to the
+// callback with a code we exchange server-side.
+router.get('/google', authLimiter, startGoogleSignIn);
+router.get('/google/callback', googleCallback);
+
 router.post('/register', authLimiter, validate(registerSchema), register);
 router.post('/login', authLimiter, validate(loginSchema), login);
+
+// Session lifecycle. Refresh is not capped as hard as the credential
+// endpoints: every open tab calls it when its access token expires.
+router.post('/refresh', refresh);
+router.post('/logout', logout);
+router.post('/logout-everywhere', authenticateToken, logoutEverywhere);
+
 router.get('/me', authenticateToken, me);
 
 // Admin-only user administration

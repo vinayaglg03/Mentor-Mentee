@@ -16,6 +16,7 @@ import ReportsPage from './pages/ReportsPage';
 import BatchesPage from './pages/BatchesPage';
 import SettingsPage from './pages/SettingsPage';
 import UnsubscribePage from './pages/UnsubscribePage';
+import AuthCallback from './pages/AuthCallback';
 
 import LandingPage from './pages/LandingPage';
 
@@ -76,6 +77,9 @@ const AppRoutes = () => {
             <AttendanceEntry />
           </ProtectedRoute>
         } />
+
+        {/* Where Google returns the browser after sign-in. */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Reached from an email link, so it must not require a session. */}
         <Route path="/notifications/unsubscribe" element={<UnsubscribePage />} />

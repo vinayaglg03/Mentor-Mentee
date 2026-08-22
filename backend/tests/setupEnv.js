@@ -11,3 +11,6 @@ process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-that-is-long-enough-for-config';
 process.env.LOG_LEVEL = 'silent';
+// Most of the suite signs in with a password; the SSO tests flip this flag
+// themselves to check what happens when it is off.
+process.env.AUTH_PASSWORD_ENABLED = 'true';

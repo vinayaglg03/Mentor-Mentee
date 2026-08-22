@@ -7,6 +7,24 @@ import AlertItem from '../components/AlertItem';
 import { can } from '../lib/permissions';
 import './MarksEntry.css';
 
+const LOG_TYPES = [
+  { value: 'ROUTINE_MEETING', label: 'Routine meeting' },
+  { value: 'ACADEMIC', label: 'Academic' },
+  { value: 'ATTENDANCE', label: 'Attendance' },
+  { value: 'PERSONAL', label: 'Personal' },
+  { value: 'CAREER', label: 'Career' },
+  { value: 'DISCIPLINARY', label: 'Disciplinary' },
+];
+
+const LOG_MODES = [
+  { value: 'IN_PERSON', label: 'In person' },
+  { value: 'PHONE', label: 'Phone' },
+  { value: 'EMAIL', label: 'Email' },
+  { value: 'ONLINE', label: 'Online' },
+];
+
+const LOG_TYPE_LABELS = Object.fromEntries(LOG_TYPES.map(type => [type.value, type.label]));
+
 // Matches the thresholds the alert engine uses.
 const attendanceClass = (percent) => {
   if (percent === null || percent === undefined) return '';
@@ -29,6 +47,8 @@ const MentorDashboard = () => {
   
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [newLogText, setNewLogText] = useState('');
+  const [newLog, setNewLog] = useState({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
+  const [followUps, setFollowUps] = useState([]);
   
   const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({ 
@@ -40,6 +60,7 @@ const MentorDashboard = () => {
 
   useEffect(() => {
     fetchStudents();
+    fetchFollowUps();
   }, []);
 
   const errorMessage = (err, fallback) => err.response?.data?.error || fallback;
@@ -72,10 +93,29 @@ const MentorDashboard = () => {
     setNewLogText('');
   };
 
+  const fetchFollowUps = async () => {
+    try {
+      const { data } = await api.get('/mentors/follow-ups');
+      setFollowUps(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleAddLog = async (studentId, semesterRecordId) => {
     if (!newLogText.trim() || !semesterRecordId) return;
     try {
-      await api.post('/mentors/logs', { studentId, semesterRecordId, remark: newLogText });
+      await api.post('/mentors/logs', {
+        studentId,
+        semesterRecordId,
+        remark: newLogText,
+        type: newLog.type,
+        mode: newLog.mode,
+        actionItems: newLog.actionItems || undefined,
+        followUpDate: newLog.followUpDate || undefined,
+      });
+      setNewLog({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
+      fetchFollowUps();
       setNewLogText('');
       fetchStudents();
     } catch (err) {
@@ -226,6 +266,57 @@ const MentorDashboard = () => {
         </div>
       </div>
 
+      {/* Follow-ups due */}
+      <div className="card mt-4">
+        <div className="card-header flex-between">
+          <h3>
+            Follow-ups due{' '}
+            <span className="badge" style={{ background: followUps.some(f => f.overdue) ? 'var(--danger)' : 'var(--c-primary)', color: 'white' }}>
+              {followUps.length}
+            </span>
+          </h3>
+        </div>
+        <div className="card-body">
+          {followUps.length === 0 ? (
+            <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+              Nothing due in the next fortnight. Set a follow-up date when you log an interaction.
+            </p>
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Due</th>
+                    <th>Student</th>
+                    <th>Type</th>
+                    <th>Agreed action</th>
+                    <th style={{ textAlign: 'right' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {followUps.map(item => (
+                    <tr key={item.id}>
+                      <td className={item.overdue ? 'attendance-critical' : ''}>
+                        {new Date(item.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                        {item.overdue && ' \u00b7 overdue'}
+                      </td>
+                      <td><strong>{item.student.rollNumber}</strong> {item.student.name}</td>
+                      <td>{LOG_TYPE_LABELS[item.type] || item.type}</td>
+                      <td>{item.actionItems || item.remark}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="btn-icon" onClick={() => navigate(`/student/${item.student.id}`)} title="Open student">
+                          <Eye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Students Table */}
       <div className="card mt-4" style={{ padding: 0 }}>
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
@@ -331,14 +422,51 @@ const MentorDashboard = () => {
                               <div style={{ width: '300px' }}>
                                 <div className="card" style={{ padding: '1rem', background: 'white', position: 'sticky', top: '1rem' }}>
                                   <h5 style={{ margin: '0 0 1rem 0' }}>Add Log (Sem {student.semesterRecords?.[0]?.semester || '?'})</h5>
-                                  <textarea 
-                                    className="input-control" 
-                                    style={{ width: '100%', minHeight: '80px', marginBottom: '1rem', padding: '0.5rem', resize: 'vertical' }} 
-                                    placeholder="Enter remark..."
+                                  <textarea
+                                    className="input-control"
+                                    style={{ width: '100%', minHeight: '80px', marginBottom: '0.75rem', padding: '0.5rem', resize: 'vertical' }}
+                                    placeholder="What was discussed..."
                                     value={newLogText}
                                     onChange={(e) => setNewLogText(e.target.value)}
                                     onClick={(e) => e.stopPropagation()}
                                   ></textarea>
+                                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    <select
+                                      className="input-control"
+                                      style={{ flex: 1, fontSize: '12px' }}
+                                      value={newLog.type}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => setNewLog({ ...newLog, type: e.target.value })}
+                                    >
+                                      {LOG_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+                                    </select>
+                                    <select
+                                      className="input-control"
+                                      style={{ flex: 1, fontSize: '12px' }}
+                                      value={newLog.mode}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => setNewLog({ ...newLog, mode: e.target.value })}
+                                    >
+                                      {LOG_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
+                                    </select>
+                                  </div>
+                                  <input
+                                    className="input-control"
+                                    style={{ width: '100%', marginBottom: '0.75rem', fontSize: '12px' }}
+                                    placeholder="Agreed actions (optional)"
+                                    value={newLog.actionItems}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => setNewLog({ ...newLog, actionItems: e.target.value })}
+                                  />
+                                  <label style={{ fontSize: '11px', color: 'var(--fg-muted)' }}>Follow up on</label>
+                                  <input
+                                    type="date"
+                                    className="input-control"
+                                    style={{ width: '100%', marginBottom: '1rem', fontSize: '12px' }}
+                                    value={newLog.followUpDate}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => setNewLog({ ...newLog, followUpDate: e.target.value })}
+                                  />
                                   <button 
                                     className="btn btn-primary btn-full" 
                                     onClick={(e) => { e.stopPropagation(); handleAddLog(student.id, student.semesterRecords?.[0]?.id); }}

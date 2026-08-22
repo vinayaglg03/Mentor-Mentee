@@ -13,6 +13,7 @@
     "job:backfill-gpa": "node src/jobs/backfillGpa.js",
     "report:departments": "node src/jobs/departmentReport.js",
     "job:prune-audit": "node src/jobs/pruneAudit.js",
+    "job:digest": "node src/jobs/digestJobs.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },
@@ -31,6 +32,8 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.0.5",
     "pdfkit": "^0.19.1",
     "pg": "^8.20.0",
     "pino": "^10.3.1",

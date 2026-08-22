@@ -14,6 +14,8 @@ import MarksEntry from './pages/MarksEntry';
 import AttendanceEntry from './pages/AttendanceEntry';
 import ReportsPage from './pages/ReportsPage';
 import BatchesPage from './pages/BatchesPage';
+import SettingsPage from './pages/SettingsPage';
+import UnsubscribePage from './pages/UnsubscribePage';
 
 import LandingPage from './pages/LandingPage';
 
@@ -72,6 +74,15 @@ const AppRoutes = () => {
         <Route path="/attendance/entry" element={
           <ProtectedRoute require="student:read">
             <AttendanceEntry />
+          </ProtectedRoute>
+        } />
+
+        {/* Reached from an email link, so it must not require a session. */}
+        <Route path="/notifications/unsubscribe" element={<UnsubscribePage />} />
+
+        <Route path="/settings" element={
+          <ProtectedRoute require="student:read">
+            <SettingsPage />
           </ProtectedRoute>
         } />
 

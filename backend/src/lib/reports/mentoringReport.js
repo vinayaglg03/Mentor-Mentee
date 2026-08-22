@@ -6,6 +6,13 @@ import {
   lineChart, signatures, finalise, COLOURS, ensureSpace,
 } from './pdf.js';
 
+// ROUTINE_MEETING -> Routine meeting
+const sentence = (value) => {
+  if (!value) return '—';
+  const words = String(value).toLowerCase().replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
 const date = (value) =>
   value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -21,7 +28,10 @@ export const loadMentoringReportData = async (studentId) => {
           attendance: { include: { subject: { select: { code: true, name: true } } } },
           achievements: { orderBy: { date: 'desc' } },
           alerts: { orderBy: { timestamp: 'desc' } },
-          progressLogs: { orderBy: { date: 'desc' }, include: { mentor: { select: { name: true } } } },
+          progressLogs: {
+            orderBy: { date: 'desc' },
+            include: { mentor: { select: { name: true } } },
+          },
         },
       },
     },
@@ -172,19 +182,31 @@ export const buildMentoringReport = (student) => {
   sectionHeading(doc, 'Record of mentoring interactions');
   table(doc, {
     columns: [
-      { header: 'Date', key: 'date', width: 16 },
-      { header: 'Semester', key: 'semester', width: 12 },
-      { header: 'Mentor', key: 'mentor', width: 20 },
-      { header: 'Remark', key: 'remark', width: 52 },
+      { header: 'Date', key: 'date', width: 11 },
+      { header: 'Sem', key: 'semester', width: 6 },
+      { header: 'Type', key: 'type', width: 13 },
+      { header: 'Mode', key: 'mode', width: 10 },
+      { header: 'Mentor', key: 'mentor', width: 14 },
+      { header: 'Remark and agreed actions', key: 'remark', width: 36 },
+      { header: 'Follow-up', key: 'followUp', width: 10 },
     ],
     rows: records.flatMap(record =>
       record.progressLogs.map(log => ({
+        sortKey: new Date(log.date).getTime(),
         date: date(log.date),
-        semester: `Sem ${record.semester}`,
+        semester: record.semester,
+        type: sentence(log.type),
+        mode: sentence(log.mode),
         mentor: log.mentor?.name || '—',
-        remark: log.remark,
+        remark: [
+          log.remark,
+          log.actionItems ? `Actions: ${log.actionItems}` : null,
+          log.correctsId ? '(correction of an earlier entry)' : null,
+          log.studentAcknowledged ? '(acknowledged by the student)' : null,
+        ].filter(Boolean).join('\n'),
+        followUp: log.followUpDate ? date(log.followUpDate) : '—',
       }))
-    ).sort((a, b) => new Date(b.date) - new Date(a.date)),
+    ).sort((a, b) => b.sortKey - a.sortKey),
     emptyText: 'No mentoring interactions recorded.',
   });
 

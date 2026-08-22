@@ -15,6 +15,11 @@ model User {
   approved     Boolean       @default(false)
   // The department a HOD heads, or the one a coordinator/mentor belongs to.
   departmentId String?
+  // How often this person wants a digest, and the token that lets them turn
+  // it off from the email without signing in.
+  digestFrequency  DigestFrequency @default(DAILY)
+  unsubscribeToken String?         @unique
+  lastDigestAt     DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   maxStudents  Int           @default(30)
@@ -218,8 +223,38 @@ model ProgressLog {
   mentorId         String
   remark           String
   date             DateTime       @default(now())
+  type             LogType        @default(ROUTINE_MEETING)
+  mode             LogMode        @default(IN_PERSON)
+  actionItems      String?
+  followUpDate     DateTime?
+  studentAcknowledged Boolean     @default(false)
+  // A correction points at the entry it corrects; the original is kept.
+  correctsId       String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   mentor           User           @relation(fields: [mentorId], references: [id])
   semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  corrects         ProgressLog?   @relation("LogCorrection", fields: [correctsId], references: [id])
+  correctedBy      ProgressLog[]  @relation("LogCorrection")
+
+  @@index([mentorId, followUpDate])
+  @@index([semesterRecordId])
+}
+
+enum LogType {
+  ACADEMIC
+  ATTENDANCE
+  PERSONAL
+  CAREER
+  DISCIPLINARY
+  ROUTINE_MEETING
+}
+
+enum LogMode {
+  IN_PERSON
+  PHONE
+  EMAIL
+  ONLINE
 }
 
 // A parsed-but-not-yet-applied spreadsheet. Preview writes one, commit reads
@@ -307,6 +342,12 @@ enum StudentStatus {
   GRADUATED
   DROPPED
   TRANSFERRED
+}
+
+enum DigestFrequency {
+  DAILY
+  WEEKLY
+  OFF
 }
 
 enum AlertSeverity {

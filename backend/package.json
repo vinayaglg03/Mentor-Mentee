@@ -16,6 +16,7 @@
     "job:digest": "node src/jobs/digestJobs.js",
     "seed:demo": "node src/jobs/seedDemo.js",
     "perf:analytics": "node src/jobs/perfCheck.js",
+    "job:retention": "node src/jobs/retention.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

@@ -3,6 +3,7 @@ import { Search, Bell, HelpCircle } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 import { useAuth } from '../context/useAuth';
 import GlobalSearch from './GlobalSearch';
+import ReportProblem from './ReportProblem';
 import './TopBar.css';
 
 const TopBar = () => {
@@ -14,6 +15,7 @@ const TopBar = () => {
       <GlobalSearch />
       
       <div className="topbar-actions">
+        <ReportProblem />
         <button className="icon-btn" type="button" aria-label="Help">
           <HelpCircle size={20} aria-hidden="true" />
         </button>

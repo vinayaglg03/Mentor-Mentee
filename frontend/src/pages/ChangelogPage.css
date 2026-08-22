@@ -1,0 +1,9 @@
+.changelog h2 { font-size: 1.3rem; margin: 0 0 0.5rem 0; }
+.changelog h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem 0; }
+.changelog h4 { font-size: 0.9rem; margin: 1.25rem 0 0.35rem 0; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.changelog p { font-size: 14px; line-height: 1.6; margin: 0 0 0.6rem 0; }
+.changelog ul { margin: 0 0 1rem 1.1rem; padding: 0; }
+.changelog li { font-size: 14px; line-height: 1.6; margin-bottom: 0.3rem; }
+.changelog hr { border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0; }
+.changelog code { background: #f1f5f9; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 12.5px; }
+.changelog a { color: var(--c-primary); }

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { can, atLeast } from '../lib/permissions';
-import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2, CalendarCheck, FileDown, Layers } from 'lucide-react';
+import { LayoutDashboard, Users, Bell, LogOut, Settings, FileText, GraduationCap, Upload, Table2, CalendarCheck, FileDown, Layers, Shield, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Sidebar.css';
 
@@ -32,6 +32,8 @@ const Sidebar = () => {
     can(user, 'batch:promote') && { to: '/batches', icon: Layers, label: 'Batches' },
     { to: '/reports', icon: FileDown, label: 'Reports' },
     { to: '/settings', icon: Settings, label: atLeast(user, 'HOD') ? 'System Settings' : 'Preferences' },
+    { to: '/privacy', icon: Shield, label: 'Privacy' },
+    { to: '/changelog', icon: Sparkles, label: 'What changed' },
   ].filter(Boolean);
 
   return (

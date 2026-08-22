@@ -12,7 +12,7 @@ import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown, History
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown, History, Download
 } from 'lucide-react';
 import './StudentDetail.css';
 import './MarksEntry.css';
@@ -195,6 +195,20 @@ const StudentDetail = () => {
     }
   };
 
+  // Everything AMIS holds about this student, as one JSON file.
+  const exportData = async () => {
+    try {
+      await downloadFile(
+        `/privacy/students/${id}/export`,
+        undefined,
+        `amis-export-${student?.rollNumber || id}.json`
+      );
+      toast.success('Export downloaded.');
+    } catch (error) {
+      toast.error(error, 'Could not produce that export.');
+    }
+  };
+
   // The signed, filed semester document - one click, no options to get wrong.
   const downloadReport = async () => {
     setDownloadingReport(true);
@@ -338,6 +352,16 @@ const StudentDetail = () => {
               style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
             >
               <FileDown size={16} /> {downloadingReport ? 'Preparing…' : 'Mentoring report'}
+            </button>
+
+            {/* Everything held about this student, for a data request. */}
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={exportData}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+            >
+              <Download size={16} /> Export data
             </button>
           </div>
         </motion.div>

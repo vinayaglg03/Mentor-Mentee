@@ -66,6 +66,11 @@ api.interceptors.response.use(
     const original = error.config;
     const status = error.response?.status;
 
+    // Remembered so the "Report a problem" form can quote the failure the
+    // user actually hit.
+    const requestId = error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
+    if (requestId) window.__amisLastRequestId = requestId;
+
     // 401 means the access token has expired: refresh once and replay. A 403
     // means signed in but not allowed, and the caller shows an inline error
     // rather than being kicked out of the app.

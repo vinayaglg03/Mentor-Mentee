@@ -19,6 +19,8 @@ import SettingsPage from './pages/SettingsPage';
 import UnsubscribePage from './pages/UnsubscribePage';
 import AuthCallback from './pages/AuthCallback';
 import SetupWizard from './pages/SetupWizard';
+import PrivacyPage from './pages/PrivacyPage';
+import ChangelogPage from './pages/ChangelogPage';
 
 import LandingPage from './pages/LandingPage';
 
@@ -89,6 +91,18 @@ const AppRoutes = () => {
         <Route path="/settings" element={
           <ProtectedRoute require="student:read">
             <SettingsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/privacy" element={
+          <ProtectedRoute require="student:read">
+            <PrivacyPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/changelog" element={
+          <ProtectedRoute require="student:read">
+            <ChangelogPage />
           </ProtectedRoute>
         } />
 

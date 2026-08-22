@@ -89,6 +89,21 @@ const config = {
     allowedDomains: (process.env.ALLOWED_EMAIL_DOMAINS || '')
       .split(',').map(entry => entry.trim().toLowerCase()).filter(Boolean),
   },
+  retention: {
+    // Documented in docs/PRIVACY.md. Changing these changes what the privacy
+    // page tells people, because it reads from here.
+    auditYears: Number(process.env.RETENTION_AUDIT_YEARS || 3),
+    // How long a graduated student's academic record is kept before the
+    // retention job offers it for deletion.
+    graduatedStudentYears: Number(process.env.RETENTION_GRADUATED_YEARS || 7),
+  },
+  privacy: {
+    contactEmail: process.env.PRIVACY_CONTACT_EMAIL || process.env.SUPPORT_EMAIL || '',
+  },
+  support: {
+    // Where "Report a problem" goes.
+    email: process.env.SUPPORT_EMAIL || '',
+  },
   notifications: {
     // A HIGH alert older than this appears in the HOD's weekly digest.
     escalateAfterDays: Number(process.env.ALERT_ESCALATION_DAYS || 7),

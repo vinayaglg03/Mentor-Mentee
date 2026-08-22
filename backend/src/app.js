@@ -23,6 +23,7 @@ import departmentRoutes from './routes/departments.js';
 import auditRoutes from './routes/audit.js';
 import notificationRoutes from './routes/notifications.js';
 import setupRoutes from './routes/setup.js';
+import privacyRoutes from './routes/privacy.js';
 import { health, ready } from './controllers/health.js';
 import { reportError } from './lib/monitoring.js';
 
@@ -82,6 +83,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/privacy', privacyRoutes);
 
 // Liveness: is the process up and can it reach the database.
 app.get('/api/health', health);

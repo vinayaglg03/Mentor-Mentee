@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { assertMentorHasCapacity, studentScopeWhere, loadScope, assertCanAccessStudent } from '../lib/access.js';
+import { topPerformers as topPerformersQuery } from '../lib/analyticsQueries.js';
 
 // GET all students across all years
 export const getAllStudents = async (req, res, next) => {
@@ -132,33 +133,11 @@ export const getAtRiskStudents = async (req, res, next) => {
 // GET Top Performers Insight
 export const getTopPerformers = async (req, res, next) => {
   try {
-    const studentsWithRecords = await prisma.student.findMany({
-      where: { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) },
-      include: { 
-        semesterRecords: {
-          include: { scores: true }
-        }, 
-        mentor: { select: { name: true } } 
-      }
-    });
+    // Averaged, ordered and limited in the database: ten rows come back, not
+    // every score in the department.
+    const top10 = await topPerformersQuery(req.user, { limit: 10 });
 
-    const performance = studentsWithRecords.map(student => {
-      const allScores = student.semesterRecords.flatMap(r => r.scores);
-      const totalScore = allScores.reduce((sum, score) => sum + (score.finalScore || 0), 0);
-      const avgScore = allScores.length > 0 ? totalScore / allScores.length : 0;
-      return {
-        id: student.id,
-        name: student.name,
-        rollNumber: student.rollNumber,
-        department: student.department,
-        mentorName: student.mentor?.name || 'Unassigned',
-        averageScore: Math.round(avgScore * 10) / 10,
-        totalSubjects: allScores.length
-      };
-    });
-
-    const top10 = performance.sort((a, b) => b.averageScore - a.averageScore).slice(0, 10);
-    res.json(top10);
+    res.json(top10.map(row => ({ ...row, mentorName: row.mentorName || 'Unassigned' })));
   } catch (error) {
     next(error);
   }

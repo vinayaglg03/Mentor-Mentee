@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,6 +23,8 @@ import departmentRoutes from './routes/departments.js';
 import auditRoutes from './routes/audit.js';
 import notificationRoutes from './routes/notifications.js';
 import setupRoutes from './routes/setup.js';
+import { health, ready } from './controllers/health.js';
+import { reportError } from './lib/monitoring.js';
 
 const app = express();
 
@@ -30,7 +33,22 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(helmet());
-app.use(pinoHttp({ logger }));
+
+// Every request gets an id, echoed in a header and in any error response, so
+// a faculty member reporting a problem can quote a reference that finds the
+// exact request in the logs.
+app.use((req, res, next) => {
+  const incoming = req.headers['x-request-id'];
+  req.id = typeof incoming === 'string' && incoming.length <= 64 ? incoming : crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+  next();
+});
+
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => req.id,
+  customProps: (req) => ({ requestId: req.id, userId: req.user?.id }),
+}));
 
 // Only these origins may call the API. Requests without an Origin header
 // (curl, health checks, server-to-server) are allowed through.
@@ -65,24 +83,28 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/setup', setupRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
-});
+// Liveness: is the process up and can it reach the database.
+app.get('/api/health', health);
+// Readiness: is this build safe to send traffic to (migrations applied).
+app.get('/api/ready', ready);
 
 // Central error handler. Validation and typed errors carry their own status;
 // anything else is logged server-side and reported to the client as a generic
 // 500 so that database internals never reach the browser.
 app.use((err, req, res, next) => {
+  const requestId = req.id;
+
   if (err instanceof MulterError) {
     const message = err.code === 'LIMIT_FILE_SIZE'
       ? 'That file is larger than the 10 MB limit.'
       : 'The file upload could not be read.';
-    return res.status(400).json({ error: message });
+    return res.status(400).json({ error: message, requestId });
   }
 
   if (err instanceof ZodError) {
     return res.status(400).json({
       error: 'Validation failed',
+      requestId,
       details: err.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
@@ -91,11 +113,17 @@ app.use((err, req, res, next) => {
   }
 
   if (err && Number.isInteger(err.status) && err.status < 500) {
-    return res.status(err.status).json({ error: err.message });
+    return res.status(err.status).json({ error: err.message, requestId });
   }
 
-  logger.error({ err, method: req.method, url: req.originalUrl }, 'Unhandled error');
-  res.status(500).json({ error: 'Internal Server Error' });
+  logger.error({ err, requestId, method: req.method, url: req.originalUrl }, 'Unhandled error');
+  reportError(err, { requestId, method: req.method, url: req.originalUrl, userId: req.user?.id });
+
+  res.status(500).json({
+    error: 'Internal Server Error',
+    // The only thing the user can usefully tell you about a 500.
+    requestId,
+  });
 });
 
 export default app;

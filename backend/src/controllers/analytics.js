@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { studentScopeWhere, loadScope } from '../lib/access.js';
+import { topPerformers as topPerformersQuery, passFailCounts, alertCountsByType, mentorDistribution } from '../lib/analyticsQueries.js';
 
 export const getHODAnalytics = async (req, res, next) => {
   try {
@@ -15,60 +16,19 @@ export const getHODAnalytics = async (req, res, next) => {
     const totalMentors = await prisma.user.count({ where: { role: 'MENTOR', ...departmentWhere } });
     
     // 1. Performance Overview (Global) - Now querying via SemesterRecord links
-    const recentScores = await prisma.score.findMany({
-      where: { finalScore: { not: null }, semesterRecord: { student: studentWhere } },
-      select: { finalScore: true }
-    });
-
-    let passCount = 0;
-    let failCount = 0;
-    recentScores.forEach(s => {
-      if (s.finalScore >= 40) passCount++;
-      else failCount++;
-    });
+    // Counted in the database rather than by pulling every score row back.
+    const { pass: passCount, fail: failCount } = await passFailCounts(req.user);
 
     // 2. Alert Stats
     const alertWhere = { resolved: false, semesterRecord: { student: studentWhere } };
 
     const totalAlerts = await prisma.alert.count({ where: alertWhere });
-    const alertsByTypeRow = await prisma.alert.groupBy({
-      by: ['type'],
-      _count: { type: true },
-      where: alertWhere
-    });
-    const alertsByType = alertsByTypeRow.map(a => ({ type: a.type, count: a._count.type }));
+    const alertsByType = await alertCountsByType(req.user);
 
-    // 3. Top Performers (based on avg final score across all semester records)
-    const studentsWithRecords = await prisma.student.findMany({
-      where: studentWhere,
-      include: { 
-        semesterRecords: {
-          include: { scores: true }
-        }, 
-        mentor: { select: { name: true } } 
-      }
-    });
-
-    const performance = studentsWithRecords.map(student => {
-      const allScores = student.semesterRecords.flatMap(r => r.scores);
-      const totalScore = allScores.reduce((sum, score) => sum + (score.finalScore || 0), 0);
-      const avgScore = allScores.length > 0 ? totalScore / allScores.length : 0;
-      return {
-        id: student.id,
-        name: student.name,
-        rollNumber: student.rollNumber,
-        averageScore: Math.round(avgScore * 10) / 10,
-        mentorName: student.mentor?.name || 'Unassigned'
-      };
-    });
-    const topPerformers = performance.sort((a, b) => b.averageScore - a.averageScore).slice(0, 5);
-
-    // 4. Mentor-wise Student Distribution
-    const mentors = await prisma.user.findMany({
-      where: { role: 'MENTOR', ...departmentWhere },
-      include: { _count: { select: { students: { where: { status: 'ACTIVE' } } } } }
-    });
-    const mentorDistribution = mentors.map(m => ({ name: m.name, studentCount: m._count.students }));
+    // 3 and 4: both aggregated and ordered in SQL, returning only the rows
+    // that are shown.
+    const topPerformers = await topPerformersQuery(req.user, { limit: 5 });
+    const mentorCounts = await mentorDistribution(req.user);
 
     // 5. Recent Critical Alerts
     const recentAlerts = await prisma.alert.findMany({
@@ -104,7 +64,7 @@ export const getHODAnalytics = async (req, res, next) => {
         byType: alertsByType
       },
       topPerformers,
-      mentorDistribution,
+      mentorDistribution: mentorCounts,
       recentAlerts: flattenedAlerts
     });
 

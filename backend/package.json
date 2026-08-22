@@ -15,6 +15,7 @@
     "job:prune-audit": "node src/jobs/pruneAudit.js",
     "job:digest": "node src/jobs/digestJobs.js",
     "seed:demo": "node src/jobs/seedDemo.js",
+    "perf:analytics": "node src/jobs/perfCheck.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },
@@ -24,6 +25,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "@sentry/node": "^10.70.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",

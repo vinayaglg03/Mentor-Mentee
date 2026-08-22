@@ -70,6 +70,9 @@ model Student {
   @@index([departmentId])
   @@index([batchId])
   @@index([sectionId])
+  // Every class grid, export and analytic filters on these together.
+  @@index([status, departmentId, currentSemester])
+  @@index([status, mentorId])
 }
 
 // A department is the top-level tenant boundary: a HOD sees exactly one.
@@ -143,6 +146,7 @@ model SemesterRecord {
 
   @@unique([studentId, semester, academicYear])
   @@index([studentId])
+  @@index([semester, academicYear])
 }
 
 model Subject {
@@ -191,6 +195,8 @@ model Score {
   subject          Subject        @relation(fields: [subjectId], references: [id])
 
   @@unique([semesterRecordId, subjectId])
+  // Pass/fail and average aggregates scan on this.
+  @@index([finalScore])
 }
 
 // Classes held and attended for one subject in one semester. Eligibility
@@ -223,6 +229,9 @@ model Alert {
   semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
 
   @@index([semesterRecordId])
+  // The at-risk lists and the HOD escalation filter on open alerts by
+  // severity.
+  @@index([resolved, severity])
 }
 
 model ProgressLog {

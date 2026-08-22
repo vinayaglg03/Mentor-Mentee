@@ -30,13 +30,33 @@ staff.
 - **Reports** — a printable per-mentee mentoring report (PDF) with the dated
   interaction log auditors ask for, a class summary (PDF) for HOD reviews, and
   at-risk and marks-sheet exports (Excel).
+- **Multi-department** — departments, batches and sections are real entities,
+  so two departments can share one instance without seeing each other's
+  students.
+- **Semester rollover** — promoting a batch is one reviewed action: preview
+  exactly who moves, who graduates and who is skipped, then apply it. Running
+  it twice is refused rather than applied.
+- **Audit log** — every change to a student, mark, attendance figure, alert,
+  log or account is attributable to a person and a timestamp, with a
+  field-level before and after.
+- **Email digests** — one daily email per mentor covering their open alerts,
+  follow-ups due and quiet mentees; a weekly escalation to the HOD for high
+  alerts nobody has closed.
 
 ## Roles
 
-| Role | Who | Can do |
+Scope is decided in one place, `backend/src/lib/access.js`, and every list,
+query, export and importer runs through it.
+
+| Role | Sees | Also can |
 |---|---|---|
-| `MENTOR` | Faculty mentor | Everything for **their own** mentees only |
-| `ADMIN` | HOD | Everything, for every student, plus user administration |
+| `SUPER_ADMIN` | Every department | Create departments, change roles, move people between departments |
+| `HOD` | Their own department | Subject master data, soft-delete students, promote batches, read the audit log, administer accounts in their department |
+| `COORDINATOR` | Their assigned section(s) | Reassign mentees inside their sections, read department analytics |
+| `MENTOR` | Their own mentees | Marks, attendance, logs and reports for those mentees |
+
+A HOD or coordinator with nothing assigned to them sees **nothing** rather
+than everything, and the app says so instead of showing an empty screen.
 
 Accounts are not self-service. Anyone can submit the signup form, but that
 always creates an **unapproved MENTOR** — the role is never taken from the
@@ -57,10 +77,21 @@ User (MENTOR | ADMIN)
            ├── Achievement  (title, description, date)
            └── ProgressLog  (mentor remark, date)
 
-Subject (code, department, academicYear, semester, credits) ──< Score, Attendance
-GradeBand (label, minScore, gradePoint)   -- the grade scale, editable by an ADMIN
+Subject (code, departmentId, academicYear, semester, credits) ──< Score, Attendance
+
+Department (code unique, name, hodId)
+ └── Batch (admissionYear, currentSemester)
+      └── Section (name, coordinatorId) ──< Student
+
+GradeBand (label, minScore, gradePoint)   -- the grade scale, editable by a HOD
 PendingImport (a parsed spreadsheet awaiting commit, expires after 30 minutes)
+SemesterRollover (who promoted a batch, when, and what it did)
+AuditLog (actor, action, entity, before/after, ip, user agent) -- append-only
 ```
+
+`Student.department` and `Subject.department` still exist as strings, marked
+deprecated. They are kept in step with the relation for one release so a
+rollback is possible, and should be dropped in a follow-up.
 
 Everything academic hangs off `SemesterRecord`, so a student keeps a full
 longitudinal history across semesters. Deleting a student is a **soft delete**:
@@ -91,6 +122,51 @@ seeded with a 10-point scale (90+ = 10 down to a fail at 0) and editable through
 for a semester; CGPA is the same across every semester so far, stored against
 each semester record so the trend can be plotted. Failed subjects still consume
 their credits. After changing the scale, run `npm run job:backfill-gpa`.
+
+### Departments, batches and sections
+
+A department is the tenant boundary. Batches are one intake (`CSE 2024`) and
+carry the semester the whole batch is in; sections sit under a batch and are
+what a coordinator is given.
+
+`npm run report:departments` is a read-only dry run of the free-text to
+relation mapping - run it against a database before migrating.
+
+### Semester rollover
+
+`POST /api/admin/batches/:id/promote/preview` returns exactly what would
+change. `POST /api/admin/batches/:id/promote` applies it in one transaction,
+echoing back the `fromSemester` the preview was taken at; if the batch has
+moved since, or the button is pressed twice, the second run is refused with a
+409. Past semester 8, students are marked `GRADUATED` rather than promoted.
+
+### Audit log
+
+Writes are captured by a Prisma client extension in `src/prismaClient.js`, so
+no controller has to remember to log anything, and the actor comes from an
+`AsyncLocalStorage` context set by the auth middleware. Passwords are redacted
+before storage.
+
+**Retention: three years.** `npm run job:prune-audit` archives anything older
+to `archive/audit/*.jsonl` and only then deletes it; `--dry-run` reports what
+would go. Nothing else in the application updates or deletes an entry.
+
+### Email digests
+
+`MAIL_DRIVER` picks the backing: `console` (the default; logs instead of
+sending), `smtp` via nodemailer, or `resend` over HTTP. Each user chooses
+daily, weekly or off, and every digest carries an unsubscribe link that works
+without signing in.
+
+Jobs run in process with node-cron. Running more than one instance means every
+instance fires every job, so set `NOTIFICATIONS_SCHEDULE=false` and drive them
+externally instead:
+
+```
+30 1 * * *  npm run job:digest -- daily
+0  2 * * 1  npm run job:digest -- weekly
+0  3 * * *  npm run job:inactivity
+```
 
 ### Bulk import
 
@@ -159,6 +235,14 @@ npm run dev               # http://localhost:5173
 | `COLLEGE_DEPARTMENT` | no | Second line of the report letterhead |
 | `COLLEGE_LOGO_PATH` | no | Path to a PNG or JPG logo for report headers |
 | `TEST_DATABASE_URL` | no | Throwaway database for `npm test`; it is truncated on every run |
+| `APP_URL` | no | Where the app is reachable, used for links in emails |
+| `MAIL_DRIVER` | no | `console` (default), `smtp` or `resend` |
+| `MAIL_FROM` | no | From address on digests |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` | no | For `MAIL_DRIVER=smtp` |
+| `RESEND_API_KEY` | no | For `MAIL_DRIVER=resend` |
+| `ALERT_ESCALATION_DAYS` | no | HIGH alert age that escalates to the HOD, default 7 |
+| `INACTIVITY_DAYS` | no | Days without an interaction before a mentee is flagged, default 30 |
+| `NOTIFICATIONS_SCHEDULE` | no | `false` to disable in-process cron and use an external scheduler |
 
 **frontend/.env**
 
@@ -180,6 +264,9 @@ Prisma 7 the connection URL lives there rather than in `schema.prisma`.
 | `npm run seed` | Create the test ADMIN and MENTOR accounts |
 | `npm run job:inactivity` | Raise INACTIVE alerts for stale semester records |
 | `npm run job:backfill-gpa` | Recompute SGPA and CGPA for every student |
+| `npm run job:digest -- daily\|weekly` | Send the mentor or HOD digests |
+| `npm run job:prune-audit` | Archive and remove audit entries past retention |
+| `npm run report:departments` | Dry run of the department mapping (read-only) |
 | `npm test` | Run the API test suite (needs `TEST_DATABASE_URL`) |
 
 **frontend**
@@ -225,8 +312,20 @@ All routes are under `/api` and every route except `register`, `login` and
 | GET/POST | `/mentors/logs`, POST `/mentors/achievements` | owning mentor or ADMIN |
 | GET/POST/PUT | `/subjects` | MENTOR, ADMIN |
 | GET | `/analytics/hod`, `/hod/*` | ADMIN |
-| POST | `/admin/jobs/inactivity-check`, `/admin/jobs/backfill-gpa` | ADMIN |
-| GET/PUT | `/admin/grade-scale` | ADMIN |
+| POST | `/admin/jobs/inactivity-check`, `/admin/jobs/backfill-gpa` | HOD+ |
+| GET/PUT | `/admin/grade-scale` | HOD+ |
+| POST | `/admin/batches/:id/promote/preview`, `/admin/batches/:id/promote` | HOD+ (own department) |
+| GET | `/admin/batches/:id/rollovers` | HOD+ (own department) |
+| GET | `/departments`, `/departments/batches` | authenticated |
+| POST | `/departments` | SUPER_ADMIN |
+| POST | `/departments/sections` | COORDINATOR+ |
+| GET | `/audit` | HOD+ (own department) |
+| GET | `/audit/student/:studentId` | owning mentor or above |
+| PUT | `/auth/users/:id/role`, `/auth/users/:id/department` | SUPER_ADMIN |
+| GET/PUT | `/notifications/preferences` | authenticated |
+| POST | `/notifications/unsubscribe` | public (token in the link) |
+| PUT | `/mentors/logs/:id` | author, within 24 hours |
+| GET | `/mentors/follow-ups` | authenticated |
 
 Ownership is enforced server-side in `backend/src/lib/access.js`: a mentor
 touching a student who is not theirs gets `403`, never data.

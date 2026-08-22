@@ -1,6 +1,7 @@
 import prisma from '../prismaClient.js';
+import config from '../config.js';
 
-const INACTIVITY_DAYS = 14;
+const INACTIVITY_DAYS = config.notifications.inactivityDays;
 
 // Raises an INACTIVE alert on every current semester record that has had no
 // progress log for INACTIVITY_DAYS. Runs as a job so that reading a student

@@ -13,6 +13,7 @@
     "job:backfill-gpa": "node src/jobs/backfillGpa.js",
     "report:departments": "node src/jobs/departmentReport.js",
     "job:prune-audit": "node src/jobs/pruneAudit.js",
+    "job:digest": "node src/jobs/digestJobs.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

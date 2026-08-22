@@ -1,0 +1,26 @@
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(180, 83, 9, 0.08),
+    rgba(180, 83, 9, 0.08) 10px,
+    rgba(180, 83, 9, 0.14) 10px,
+    rgba(180, 83, 9, 0.14) 20px
+  );
+  color: #92400e;
+  border: 1px solid rgba(180, 83, 9, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  font-size: 13px;
+  margin-bottom: 1.25rem;
+}
+
+.demo-banner code {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 0.35rem;
+}

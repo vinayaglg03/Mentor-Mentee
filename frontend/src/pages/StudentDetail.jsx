@@ -1,18 +1,31 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../services/api';
+import { downloadFile } from '../services/download';
+import { atLeast } from '../lib/permissions';
+import InlineEdit from '../components/InlineEdit';
+import { useToast } from '../components/useToast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { 
   AlertCircle, CheckCircle, Plus, ArrowLeft, Send, 
   AlertTriangle, Trophy, Calendar, Book, Activity, 
-  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight
+  TrendingUp, User, Hash, Briefcase, GraduationCap, ChevronRight, CalendarCheck, FileDown, History
 } from 'lucide-react';
 import './StudentDetail.css';
+import './MarksEntry.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
+
+// Matches the thresholds the alert engine uses.
+const attendanceClass = (percent) => {
+  if (percent === null || percent === undefined) return '';
+  if (percent < 75) return 'attendance-critical';
+  if (percent < 85) return 'attendance-warning';
+  return 'attendance-ok';
+};
 
 const StudentDetail = () => {
   const { user } = useAuth();
@@ -24,9 +37,24 @@ const StudentDetail = () => {
   const [subjects, setSubjects] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+  // The achievement modal markup was never added, so the button that calls
+  // setShowAchievementModal opens nothing. Wiring it up is a feature change,
+  // out of scope for this pass.
+  // eslint-disable-next-line no-unused-vars
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [activity, setActivity] = useState(null);
+  const [activityError, setActivityError] = useState('');
+  const toast = useToast();
+
+  // Single-field edits happen where the value is, not in a modal.
+  const saveField = async (field, value) => {
+    const { data } = await api.put(`/students/${id}`, { [field]: value });
+    setStudent(current => ({ ...current, ...data }));
+    toast.success('Saved.');
+  };
   const [newLog, setNewLog] = useState('');
   const [newAchievement, setNewAchievement] = useState({ title: '', description: '' });
   const [newScore, setNewScore] = useState({ 
@@ -66,7 +94,8 @@ const StudentDetail = () => {
 
   const canEdit = useMemo(() => {
     if (!user || !student) return false;
-    return user.role === 'ADMIN' || (user.role === 'MENTOR' && student.mentorId === user.id);
+    // The server decides; this only hides controls that would 403.
+    return atLeast(user, 'COORDINATOR') || student.mentorId === user.id;
   }, [user, student]);
 
   const semesterChartData = useMemo(() => {
@@ -109,28 +138,18 @@ const StudentDetail = () => {
     // Sort ascending for chronological trend
     const chronologicalRecords = [...student.semesterRecords].sort((a, b) => a.semester - b.semester);
     
-    const labels = [];
-    const averages = [];
-    
-    chronologicalRecords.forEach(record => {
-      labels.push(`Sem ${record.semester}`);
-      const scores = record.scores || [];
-      if (scores.length > 0) {
-        const sum = scores.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
-        averages.push(sum / scores.length);
-      } else {
-        averages.push(null);
-      }
-    });
+    const labels = chronologicalRecords.map(record => `Sem ${record.semester}`);
+    const sgpa = chronologicalRecords.map(record => record.sgpa ?? null);
+    const cgpa = chronologicalRecords.map(record => record.cgpa ?? null);
 
-    if (averages.every(avg => avg === null)) return null;
+    if (sgpa.every(value => value === null)) return null;
 
     return {
       labels,
       datasets: [
         {
-          label: 'Average Score',
-          data: averages,
+          label: 'SGPA',
+          data: sgpa,
           borderColor: '#4696DA',
           backgroundColor: 'rgba(70, 150, 218, 0.2)',
           fill: true,
@@ -139,20 +158,69 @@ const StudentDetail = () => {
           pointBorderColor: '#4696DA',
           pointBorderWidth: 2,
           pointRadius: 4,
+        },
+        {
+          label: 'CGPA',
+          data: cgpa,
+          borderColor: '#047857',
+          backgroundColor: 'rgba(4, 120, 87, 0.08)',
+          fill: false,
+          tension: 0.4,
+          borderDash: [6, 4],
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#047857',
+          pointBorderWidth: 2,
+          pointRadius: 3,
         }
       ]
     };
   }, [student]);
 
+  // The cumulative figure stored against the most recent semester.
+  const currentCgpa = useMemo(() => {
+    const records = [...(student?.semesterRecords || [])]
+      .filter(record => record.cgpa !== null && record.cgpa !== undefined)
+      .sort((a, b) => (a.academicYear - b.academicYear) || (a.semester - b.semester));
+
+    return records.length > 0 ? records[records.length - 1].cgpa : null;
+  }, [student]);
+
+  const loadActivity = async () => {
+    setActivityError('');
+    try {
+      const { data } = await api.get(`/audit/student/${id}`);
+      setActivity(data.entries);
+    } catch {
+      setActivityError('Could not load the change history.');
+    }
+  };
+
+  // The signed, filed semester document - one click, no options to get wrong.
+  const downloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      await downloadFile(
+        `/reports/student/${id}/mentoring.pdf`,
+        undefined,
+        `mentoring-report-${student?.rollNumber || id}.pdf`
+      );
+    } catch {
+      alert('Could not produce the report.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const progressionOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 11 } } },
       tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
     },
     scales: {
-      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' } },
+      // Grade points, not marks.
+      y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,0,0,0.04)' } },
       x: { grid: { display: false } }
     }
   };
@@ -168,6 +236,7 @@ const StudentDetail = () => {
     } catch(err) { console.error(err); }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleAchievementSubmit = async (e) => {
     e.preventDefault();
     if (!newAchievement.title.trim() || !selectedSemesterId) return;
@@ -246,7 +315,14 @@ const StudentDetail = () => {
             <button onClick={() => navigate(-1)} className="btn-back-glass" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '50%', marginBottom: '1.5rem', cursor: 'pointer' }}>
               <ArrowLeft size={20} />
             </button>
-            <h1>{student.name}</h1>
+            <h1>
+              <InlineEdit
+                value={student.name}
+                label="student name"
+                disabled={!canEdit}
+                onSave={(value) => saveField('name', value)}
+              />
+            </h1>
             <div className="profile-meta">
               <span><Hash size={16} /> {student.rollNumber}</span>
               <span><Briefcase size={16} /> {student.department}</span>
@@ -254,17 +330,28 @@ const StudentDetail = () => {
             </div>
           </div>
           <div className="profile-stats">
-            <div className="radial-progress">
-              {/* Optional: Add a CSS radial progress for overall GPA/Attendance */}
-            </div>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={downloadReport}
+              disabled={downloadingReport}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+            >
+              <FileDown size={16} /> {downloadingReport ? 'Preparing…' : 'Mentoring report'}
+            </button>
           </div>
         </motion.div>
 
         <div className="metrics-grid">
           <div className="card stat-card">
-            <label>GPA Prediction</label>
-            <div className="value">{((selectedRecord?.scores || []).reduce((a,b)=>a+(b.finalScore||0),0) / ((selectedRecord?.scores || []).length||1) / 10).toFixed(2)}</div>
+            <label>SGPA (Sem {selectedRecord?.semester ?? '—'})</label>
+            <div className="value">{selectedRecord?.sgpa ?? '—'}</div>
             <TrendingUp size={20} color="var(--success)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
+          </div>
+          <div className="card stat-card">
+            <label>Current CGPA</label>
+            <div className="value">{currentCgpa ?? '—'}</div>
+            <GraduationCap size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
             <label>Active Alerts</label>
@@ -279,15 +366,17 @@ const StudentDetail = () => {
             <Trophy size={20} color="var(--info)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
-            <label>Credits Earned</label>
-            <div className="value">{(selectedRecord?.scores?.length || 0) * 4}</div>
+            <label>Attendance</label>
+            <div className={`value ${attendanceClass(selectedRecord?.attendancePercent)}`}>
+              {selectedRecord?.attendancePercent == null ? '—' : `${selectedRecord.attendancePercent}%`}
+            </div>
             <Book size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
         </div>
 
         <div className="card mb-4" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h3><TrendingUp size={18} /> Academic Progression</h3>
+            <h3><TrendingUp size={18} /> SGPA and CGPA by Semester</h3>
           </div>
           <div className="card-body" style={{ height: '300px' }}>
             {!progressionChartData || !progressionChartData.labels || progressionChartData.labels.length === 0 ? (
@@ -355,6 +444,49 @@ const StudentDetail = () => {
                 <div className="right-col">
                   <div className="card mb-4">
                     <div className="card-header">
+                      <h3><CalendarCheck size={18} /> Attendance by Subject</h3>
+                    </div>
+                    <div className="card-body">
+                      {(selectedRecord?.attendance || []).length === 0 ? (
+                        <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+                          No attendance recorded for this semester yet.
+                        </p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Held</th>
+                                <th>Attended</th>
+                                <th>Percentage</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(selectedRecord.attendance || []).map(row => {
+                                const percent = row.classesHeld > 0
+                                  ? Math.round((row.classesAttended / row.classesHeld) * 1000) / 10
+                                  : null;
+                                return (
+                                  <tr key={row.id}>
+                                    <td><strong>{row.subject?.code}</strong> {row.subject?.name}</td>
+                                    <td>{row.classesHeld}</td>
+                                    <td>{row.classesAttended}</td>
+                                    <td className={attendanceClass(percent)}>
+                                      {percent === null ? '—' : `${percent}%`}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="card mb-4">
+                    <div className="card-header">
                       <h3><AlertCircle size={18} /> Intelligence Alerts</h3>
                     </div>
                     <div className="list-content">
@@ -383,6 +515,40 @@ const StudentDetail = () => {
                         </div>
                       ))}
                       {(!selectedRecord.achievements || selectedRecord.achievements.length === 0) && <p className="empty">No achievements noted.</p>}
+                    </div>
+                  </div>
+
+                  <div className="card mb-4">
+                    <div className="card-header flex-between">
+                      <h3><History size={18} /> Activity</h3>
+                      {activity === null && (
+                        <button className="btn btn-outline btn-sm" type="button" onClick={loadActivity}>
+                          Show change history
+                        </button>
+                      )}
+                    </div>
+                    <div className="card-body">
+                      {activityError && <p className="text-muted" style={{ fontSize: '13px', color: 'var(--danger)' }}>{activityError}</p>}
+                      {activity === null && !activityError && (
+                        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>
+                          Every change to this student's marks, attendance, alerts and logs, with who made it and when.
+                        </p>
+                      )}
+                      {activity !== null && activity.length === 0 && (
+                        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>Nothing recorded yet.</p>
+                      )}
+                      {activity !== null && activity.length > 0 && (
+                        <ul className="activity-list">
+                          {activity.map(entry => (
+                            <li key={entry.id}>
+                              <span className="activity-when">
+                                {new Date(entry.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                              </span>
+                              <span className="activity-what">{entry.summary}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
 

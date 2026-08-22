@@ -157,3 +157,80 @@
     display: none;
   }
 }
+
+/* On a phone the sidebar becomes a bottom bar: thumb-reachable, out of the
+   way of the content, and no horizontal space taken from a 390px screen. */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    inset: auto 0 0 0;
+    flex-direction: row;
+    width: auto;
+    height: auto;
+    margin: 0;
+    border-radius: 0;
+    padding: 0.25rem 0.5rem env(safe-area-inset-bottom, 0.25rem);
+    overflow-x: auto;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.18);
+  }
+
+  .sidebar-header,
+  .sidebar-footer .user-info {
+    display: none;
+  }
+
+  .nav-menu {
+    display: flex;
+    flex-direction: row;
+    gap: 0.15rem;
+    padding: 0;
+    margin: 0;
+    overflow-x: auto;
+    flex: 1;
+    scrollbar-width: none;
+  }
+
+  .nav-menu::-webkit-scrollbar { display: none; }
+
+  .nav-item {
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.5rem 0.6rem;
+    margin: 0;
+    font-size: 10px;
+    text-align: center;
+    min-width: 62px;
+    /* A comfortable tap target rather than a link sized for a mouse. */
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .sidebar h2,
+  .nav-item span,
+  .user-info,
+  .logout-btn span {
+    display: initial;
+  }
+
+  .nav-item span {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  .active-indicator { display: none; }
+
+  .sidebar-footer {
+    padding: 0.25rem;
+    border: none;
+  }
+
+  .logout-btn {
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 10px;
+    padding: 0.5rem;
+    min-height: 48px;
+  }
+
+  .logout-btn span { display: none; }
+}

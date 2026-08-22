@@ -1,0 +1,27 @@
+# One hostname, two upstreams: /api goes to the API container, everything
+# else to the static frontend. Caddy fetches and renews a TLS certificate
+# automatically when APP_DOMAIN is a real domain pointed at this server.
+{$APP_DOMAIN} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy api:5000
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+
+	header {
+		# The API sets its own; these cover the static app.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "SAMEORIGIN"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

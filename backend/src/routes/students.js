@@ -1,16 +1,21 @@
 import express from 'express';
-import { getAllStudents, getStudentById, createStudent, updateStudent, deleteStudent, assignMentor } from '../controllers/students.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { getAllStudents, getStudentById, createStudent, updateStudent, deleteStudent } from '../controllers/students.js';
+import { authenticateToken, requireRoleAtLeast, requirePermission } from '../middleware/auth.js';
+import { search } from '../controllers/attention.js';
+import { validate } from '../middleware/validate.js';
+import { createStudentSchema, updateStudentSchema, studentIdParamSchema } from '../schemas/students.js';
 
 const router = express.Router();
 
 router.use(authenticateToken); // Protect all student routes
 
+// Must come before /:id or the search term is read as an id.
+router.get('/search', search);
+
 router.get('/', getAllStudents);
-router.get('/:id', getStudentById);
-router.post('/', requireRole(['ADMIN', 'MENTOR']), createStudent); 
-router.put('/:id', requireRole(['ADMIN', 'MENTOR']), updateStudent);
-router.delete('/:id', requireRole('ADMIN'), deleteStudent);
-router.put('/assign-mentor', requireRole('ADMIN'), assignMentor);
+router.get('/:id', validate(studentIdParamSchema), getStudentById);
+router.post('/', requireRoleAtLeast('MENTOR'), validate(createStudentSchema), createStudent);
+router.put('/:id', requireRoleAtLeast('MENTOR'), validate(updateStudentSchema), updateStudent);
+router.delete('/:id', requirePermission('student:delete'), validate(studentIdParamSchema), deleteStudent);
 
 export default router;

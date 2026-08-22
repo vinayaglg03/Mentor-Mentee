@@ -279,11 +279,148 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .app-container {
     flex-direction: column;
   }
+
   .main-content {
-    padding: 1rem;
+    padding: 0.9rem;
+    /* Clear of the bottom navigation bar. */
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Shown when a HOD or coordinator has no department or section assigned. */
+.scope-warning {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+  border-left: 4px solid #b45309;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+}
+
+/* --- Mobile-first table handling ------------------------------------------
+   A table that scrolls sideways is unusable on a phone: you cannot see the
+   name and the value at the same time. Below 768px, tables marked
+   .table-cards become one card per row, with each cell labelled by its
+   column heading through a data-label attribute. */
+
+@media (max-width: 767px) {
+  .table-responsive { overflow-x: visible; }
+
+  .data-table.table-cards,
+  .data-table.table-cards thead,
+  .data-table.table-cards tbody,
+  .data-table.table-cards tr,
+  .data-table.table-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table.table-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .data-table.table-cards tr {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: white;
+  }
+
+  .data-table.table-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border: none;
+    padding: 0.3rem 0;
+    text-align: right;
+  }
+
+  .data-table.table-cards td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--fg-muted);
+    font-weight: 700;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .data-table.table-cards td:empty { display: none; }
+
+  /* Actions sit on their own line, full width, at a tappable size. */
+  .data-table.table-cards td[data-label="Actions"] {
+    justify-content: flex-start;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border-color);
+    margin-top: 0.4rem;
+  }
+
+  .btn-icon {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Modals become sheets rather than centred boxes that overflow. */
+  .modal { align-items: flex-end; }
+
+  .modal-content {
+    max-width: 100% !important;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+/* --- Focus visibility -----------------------------------------------------
+   Keyboard users need to see where they are. This was inconsistent: some
+   controls showed nothing at all. */
+
+:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.sidebar :focus-visible {
+  outline-color: white;
+}
+
+/* Skip link: the first thing a keyboard user reaches. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 2000;
+  background: var(--c-primary);
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

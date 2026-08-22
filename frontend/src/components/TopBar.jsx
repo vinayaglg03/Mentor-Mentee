@@ -1,6 +1,8 @@
 import React from 'react';
 import { Search, Bell, HelpCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { roleLabel } from '../lib/permissions';
+import { useAuth } from '../context/useAuth';
+import GlobalSearch from './GlobalSearch';
 import './TopBar.css';
 
 const TopBar = () => {
@@ -8,23 +10,21 @@ const TopBar = () => {
 
   return (
     <header className="topbar">
-      <div className="topbar-search">
-        <Search size={18} className="text-muted" />
-        <input type="text" placeholder="Search for students, subjects or analytics..." />
-      </div>
+      {/* Was a decorative input that did nothing. */}
+      <GlobalSearch />
       
       <div className="topbar-actions">
-        <button className="icon-btn">
-          <HelpCircle size={20} />
+        <button className="icon-btn" type="button" aria-label="Help">
+          <HelpCircle size={20} aria-hidden="true" />
         </button>
-        <button className="icon-btn">
-          <Bell size={20} />
-          <span className="dot"></span>
+        <button className="icon-btn" type="button" aria-label="Notifications">
+          <Bell size={20} aria-hidden="true" />
+          <span className="dot" aria-hidden="true"></span>
         </button>
         
         <div className="topbar-user">
           <span className="user-name">{user?.name || 'Welcome'}</span>
-          <span className="user-role-badge">{user?.role === 'ADMIN' ? 'HOD' : 'Mentor'}</span>
+          <span className="user-role-badge">{roleLabel(user?.role)}</span>
         </div>
       </div>
     </header>

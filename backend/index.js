@@ -1,48 +1,16 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import authRoutes from './src/routes/auth.js';
-import mentorRoutes from './src/routes/mentors.js';
-import studentRoutes from './src/routes/students.js';
-import scoreRoutes from './src/routes/scores.js';
-import analyticsRoutes from './src/routes/analytics.js';
-import alertRoutes from './src/routes/alerts.js';
-import subjectRoutes from './src/routes/subjects.js';
-import hodRoutes from './src/routes/hod.js';
+import app from './src/app.js';
+import config from './src/config.js';
+import logger from './src/logger.js';
+import { startScheduler } from './src/jobs/scheduler.js';
+import { initMonitoring } from './src/lib/monitoring.js';
 
-dotenv.config();
+// Before anything else, so a crash during startup is still reported.
+initMonitoring();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+app.listen(config.port, '0.0.0.0', () => {
+  logger.info(`Server running on port ${config.port}`);
 
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/mentors', mentorRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/scores', scoreRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/alerts', alertRoutes);
-app.use('/api/subjects', subjectRoutes);
-app.use('/api/hod', hodRoutes);
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
-});
-
-app.use(cors({
-  origin: "https://amis-frontend.onrender.com",
-  credentials: true
-}));
-
-// Error handling backend middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error', message: err.message });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  // Digests and the inactivity sweep. Set NOTIFICATIONS_SCHEDULE=false and
+  // run the jobs externally when you deploy more than one instance.
+  startScheduler();
 });

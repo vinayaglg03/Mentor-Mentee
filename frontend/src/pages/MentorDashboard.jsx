@@ -1,15 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare, Bell } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
+import { can } from '../lib/permissions';
+import EmptyState from '../components/EmptyState';
+import AttentionPanel from '../components/AttentionPanel';
+import { SkeletonTable } from '../components/Skeleton';
+import { useToast } from '../components/useToast';
+import './MarksEntry.css';
+
+const LOG_TYPES = [
+  { value: 'ROUTINE_MEETING', label: 'Routine meeting' },
+  { value: 'ACADEMIC', label: 'Academic' },
+  { value: 'ATTENDANCE', label: 'Attendance' },
+  { value: 'PERSONAL', label: 'Personal' },
+  { value: 'CAREER', label: 'Career' },
+  { value: 'DISCIPLINARY', label: 'Disciplinary' },
+];
+
+const LOG_MODES = [
+  { value: 'IN_PERSON', label: 'In person' },
+  { value: 'PHONE', label: 'Phone' },
+  { value: 'EMAIL', label: 'Email' },
+  { value: 'ONLINE', label: 'Online' },
+];
+
+const LOG_TYPE_LABELS = Object.fromEntries(LOG_TYPES.map(type => [type.value, type.label]));
+
+// Matches the thresholds the alert engine uses.
+const attendanceClass = (percent) => {
+  if (percent === null || percent === undefined) return '';
+  if (percent < 75) return 'attendance-critical';
+  if (percent < 85) return 'attendance-warning';
+  return 'attendance-ok';
+};
 
 const MentorDashboard = () => {
   const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [unassigned, setUnassigned] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -18,6 +51,13 @@ const MentorDashboard = () => {
   
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [newLogText, setNewLogText] = useState('');
+  const [newLog, setNewLog] = useState({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
+  const [followUps, setFollowUps] = useState([]);
+  // The dashboard opens on what needs doing; the full list is one tab away.
+  const [tab, setTab] = useState('attention');
+  const [attention, setAttention] = useState(null);
+  const [attentionLoading, setAttentionLoading] = useState(true);
+  const toast = useToast();
   
   const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({ 
@@ -29,26 +69,44 @@ const MentorDashboard = () => {
 
   useEffect(() => {
     fetchStudents();
+    fetchFollowUps();
+    fetchAttention();
   }, []);
+
+  const errorMessage = (err, fallback) => err.response?.data?.error || fallback;
 
   const fetchStudents = async () => {
     setLoading(true);
+    setPageError('');
     try {
       const { data } = await api.get('/mentors/students');
       setStudents(data);
     } catch (err) {
-      console.error(err);
+      setPageError(errorMessage(err, 'Could not load your mentees.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUnassigned = async () => {
+  const fetchAttention = async () => {
+    setAttentionLoading(true);
     try {
-      const { data } = await api.get('/hod/students/unassigned');
+      const { data } = await api.get('/mentors/attention');
+      setAttention(data);
+    } catch (err) {
+      toast.error(err, 'Could not work out what needs your attention.');
+    } finally {
+      setAttentionLoading(false);
+    }
+  };
+
+  const fetchUnassigned = async () => {
+    setPageError('');
+    try {
+      const { data } = await api.get('/mentors/students/unassigned');
       setUnassigned(data);
     } catch (err) {
-      console.error(err);
+      setPageError(errorMessage(err, 'Could not load unassigned students.'));
     }
   };
 
@@ -57,14 +115,33 @@ const MentorDashboard = () => {
     setNewLogText('');
   };
 
+  const fetchFollowUps = async () => {
+    try {
+      const { data } = await api.get('/mentors/follow-ups');
+      setFollowUps(data);
+    } catch (err) {
+      toast.error(err, 'Could not load your follow-ups.');
+    }
+  };
+
   const handleAddLog = async (studentId, semesterRecordId) => {
     if (!newLogText.trim() || !semesterRecordId) return;
     try {
-      await api.post('/mentors/logs', { studentId, semesterRecordId, remark: newLogText });
+      await api.post('/mentors/logs', {
+        studentId,
+        semesterRecordId,
+        remark: newLogText,
+        type: newLog.type,
+        mode: newLog.mode,
+        actionItems: newLog.actionItems || undefined,
+        followUpDate: newLog.followUpDate || undefined,
+      });
+      setNewLog({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
+      fetchFollowUps();
       setNewLogText('');
       fetchStudents();
     } catch (err) {
-      alert("Failed to add log");
+      setPageError(errorMessage(err, 'Failed to add log.'));
     }
   };
 
@@ -74,7 +151,7 @@ const MentorDashboard = () => {
       setShowAssignModal(false);
       fetchStudents();
     } catch (err) {
-      alert("Failed to claim student");
+      setPageError(errorMessage(err, 'Failed to claim student.'));
     }
   };
 
@@ -90,9 +167,9 @@ const MentorDashboard = () => {
       setEditingStudent(null);
       setNewStudent({ name: '', rollNumber: '', department: '', currentYear: '1', currentSemester: '1', currentAcademicYear: new Date().getFullYear(), enrollmentYear: new Date().getFullYear(), email: '' });
       fetchStudents();
-      alert(`Student ${editingStudent ? 'updated' : 'created'} successfully`);
+      toast.success(`Student ${editingStudent ? 'updated' : 'created'}.`);
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to process student");
+      toast.error(err, 'Could not save that student.');
     }
   };
 
@@ -102,7 +179,7 @@ const MentorDashboard = () => {
       await api.delete(`/students/${id}`);
       fetchStudents();
     } catch (err) {
-      alert("Failed to delete student. Only admins can delete students.");
+      toast.error(err, 'Could not remove that student.');
     }
   };
 
@@ -116,9 +193,9 @@ const MentorDashboard = () => {
       });
       setShowSubjectModal(false);
       setNewSubject({ name: '', code: '', department: '', academicYear: new Date().getFullYear(), semester: '1' });
-      alert("Subject created successfully");
+      toast.success('Subject created.');
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to create subject. Ensure code is unique.");
+      toast.error(err, 'Could not create that subject. Check the code is unique.');
     }
   };
 
@@ -170,6 +247,13 @@ const MentorDashboard = () => {
         </div>
       </header>
 
+      {pageError && (
+        <div className="error-banner" role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderLeft: '4px solid var(--danger)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginBottom: '1.5rem', fontSize: '14px' }}>
+          <span>{pageError}</span>
+          <button className="btn-icon" onClick={() => setPageError('')} title="Dismiss" style={{ color: 'var(--danger)' }}>&times;</button>
+        </div>
+      )}
+
       <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setNewStudent({ name: '', rollNumber: '', department: '', currentYear: '1', currentSemester: '1', currentAcademicYear: new Date().getFullYear(), enrollmentYear: new Date().getFullYear(), email: '' }); setShowStudentModal(true); }}>
           <Plus size={18} /> New Student
@@ -182,8 +266,41 @@ const MentorDashboard = () => {
         </button>
       </div>
 
+      <div className="dash-tabs" role="tablist" aria-label="Dashboard views">
+        <button
+          role="tab"
+          type="button"
+          id="tab-attention"
+          aria-selected={tab === 'attention'}
+          aria-controls="panel-attention"
+          className={`dash-tab ${tab === 'attention' ? 'is-active' : ''}`}
+          onClick={() => setTab('attention')}
+        >
+          Needs attention
+          {attention?.total > 0 && <span className="dash-tab-count" aria-live="polite">{attention.total}</span>}
+        </button>
+        <button
+          role="tab"
+          type="button"
+          id="tab-all"
+          aria-selected={tab === 'all'}
+          aria-controls="panel-all"
+          className={`dash-tab ${tab === 'all' ? 'is-active' : ''}`}
+          onClick={() => setTab('all')}
+        >
+          All mentees
+          <span className="dash-tab-count">{(students || []).length}</span>
+        </button>
+      </div>
+
+      {tab === 'attention' && (
+        <div id="panel-attention" role="tabpanel" aria-labelledby="tab-attention">
+          <AttentionPanel data={attention} loading={attentionLoading} />
+        </div>
+      )}
+
       {/* Alerts Panel */}
-      <div className="card mt-4">
+      <div className="card mt-4" hidden={tab !== 'all'}>
         <div className="card-header flex-between">
           <h3>Current Alerts <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>{activeAlerts.length}</span></h3>
         </div>
@@ -199,13 +316,69 @@ const MentorDashboard = () => {
               />
             ))
           ) : (
-            <p className="text-muted" style={{ fontSize: '14px' }}>All students are on track in their current semester.</p>
+            <EmptyState
+              compact
+              icon={Bell}
+              title="No open alerts"
+              description="Alerts appear here when marks or attendance fall below the thresholds. Nothing needs your attention right now."
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Follow-ups due */}
+      <div className="card mt-4" hidden={tab !== 'all'}>
+        <div className="card-header flex-between">
+          <h3>
+            Follow-ups due{' '}
+            <span className="badge" style={{ background: followUps.some(f => f.overdue) ? 'var(--danger)' : 'var(--c-primary)', color: 'white' }}>
+              {followUps.length}
+            </span>
+          </h3>
+        </div>
+        <div className="card-body">
+          {followUps.length === 0 ? (
+            <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+              Nothing due in the next fortnight. Set a follow-up date when you log an interaction.
+            </p>
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Due</th>
+                    <th>Student</th>
+                    <th>Type</th>
+                    <th>Agreed action</th>
+                    <th style={{ textAlign: 'right' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {followUps.map(item => (
+                    <tr key={item.id}>
+                      <td className={item.overdue ? 'attendance-critical' : ''}>
+                        {new Date(item.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                        {item.overdue && ' \u00b7 overdue'}
+                      </td>
+                      <td><strong>{item.student.rollNumber}</strong> {item.student.name}</td>
+                      <td>{LOG_TYPE_LABELS[item.type] || item.type}</td>
+                      <td>{item.actionItems || item.remark}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="btn-icon" onClick={() => navigate(`/student/${item.student.id}`)} title="Open student">
+                          <Eye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
 
       {/* Students Table */}
-      <div className="card mt-4" style={{ padding: 0 }}>
+      <div id="panel-all" role="tabpanel" aria-labelledby="tab-all" hidden={tab !== 'all'} className="card mt-4" style={{ padding: 0 }}>
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
             <h3>My Assigned Students</h3>
@@ -223,16 +396,17 @@ const MentorDashboard = () => {
         </div>
         <div className="card-body mt-2">
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center' }} className="text-muted">Loading mentees...</div>
+            <SkeletonTable rows={6} columns={6} label="Loading your mentees" />
           ) : (
             <div className="table-responsive">
-              <table className="data-table">
+              <table className="data-table table-cards">
                 <thead>
                   <tr>
                     <th>Student Identifier</th>
                     <th>Full Name</th>
                     <th>Department</th>
                     <th>Current Academic State</th>
+                    <th>Attendance</th>
                     <th>Alert Status</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
@@ -241,11 +415,16 @@ const MentorDashboard = () => {
                   {(filteredStudents || [])?.map(student => (
                     <React.Fragment key={student.id}>
                       <tr onClick={() => toggleRow(student.id)} style={{ cursor: 'pointer' }}>
-                        <td><strong>{student.rollNumber}</strong></td>
-                        <td>{student.name}</td>
-                        <td>{student.department}</td>
-                        <td>Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
-                        <td>
+                        <td data-label="Roll number"><strong>{student.rollNumber}</strong></td>
+                        <td data-label="Name">{student.name}</td>
+                        <td data-label="Department">{student.department}</td>
+                        <td data-label="Semester">Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
+                        <td data-label="Attendance" className={attendanceClass(student.semesterRecords?.[0]?.attendancePercent)}>
+                          {student.semesterRecords?.[0]?.attendancePercent == null
+                            ? <span className="text-muted">—</span>
+                            : `${student.semesterRecords[0].attendancePercent}%`}
+                        </td>
+                        <td data-label="Alerts">
                           {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
                             <span className="alert-pill alert-high">
                               {student.semesterRecords[0].alerts.length} Active
@@ -254,7 +433,7 @@ const MentorDashboard = () => {
                             <span className="alert-pill alert-low">Clear</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${student.id}`); }} title="View Longitudinal Profile">
                               <Eye size={18} />
@@ -265,7 +444,7 @@ const MentorDashboard = () => {
                             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); openEditStudent(student); }} title="Edit Student">
                               <PlusCircle size={18} />
                             </button>
-                            {user?.role === 'ADMIN' && (
+                            {can(user, 'student:delete') && (
                               <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }} title="Delete Student" style={{ color: 'var(--danger)' }}>
                                 &times;
                               </button>
@@ -275,7 +454,7 @@ const MentorDashboard = () => {
                       </tr>
                       {expandedStudentId === student.id && (
                         <tr className="expanded-row-bg">
-                          <td colSpan="6" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                          <td colSpan="7" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <div style={{ display: 'flex', gap: '2rem' }}>
                               <div style={{ flex: 1 }}>
                                 <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -303,14 +482,51 @@ const MentorDashboard = () => {
                               <div style={{ width: '300px' }}>
                                 <div className="card" style={{ padding: '1rem', background: 'white', position: 'sticky', top: '1rem' }}>
                                   <h5 style={{ margin: '0 0 1rem 0' }}>Add Log (Sem {student.semesterRecords?.[0]?.semester || '?'})</h5>
-                                  <textarea 
-                                    className="input-control" 
-                                    style={{ width: '100%', minHeight: '80px', marginBottom: '1rem', padding: '0.5rem', resize: 'vertical' }} 
-                                    placeholder="Enter remark..."
+                                  <textarea
+                                    className="input-control"
+                                    style={{ width: '100%', minHeight: '80px', marginBottom: '0.75rem', padding: '0.5rem', resize: 'vertical' }}
+                                    placeholder="What was discussed..."
                                     value={newLogText}
                                     onChange={(e) => setNewLogText(e.target.value)}
                                     onClick={(e) => e.stopPropagation()}
                                   ></textarea>
+                                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    <select
+                                      className="input-control"
+                                      style={{ flex: 1, fontSize: '12px' }}
+                                      value={newLog.type}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => setNewLog({ ...newLog, type: e.target.value })}
+                                    >
+                                      {LOG_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+                                    </select>
+                                    <select
+                                      className="input-control"
+                                      style={{ flex: 1, fontSize: '12px' }}
+                                      value={newLog.mode}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => setNewLog({ ...newLog, mode: e.target.value })}
+                                    >
+                                      {LOG_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
+                                    </select>
+                                  </div>
+                                  <input
+                                    className="input-control"
+                                    style={{ width: '100%', marginBottom: '0.75rem', fontSize: '12px' }}
+                                    placeholder="Agreed actions (optional)"
+                                    value={newLog.actionItems}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => setNewLog({ ...newLog, actionItems: e.target.value })}
+                                  />
+                                  <label style={{ fontSize: '11px', color: 'var(--fg-muted)' }}>Follow up on</label>
+                                  <input
+                                    type="date"
+                                    className="input-control"
+                                    style={{ width: '100%', marginBottom: '1rem', fontSize: '12px' }}
+                                    value={newLog.followUpDate}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => setNewLog({ ...newLog, followUpDate: e.target.value })}
+                                  />
                                   <button 
                                     className="btn btn-primary btn-full" 
                                     onClick={(e) => { e.stopPropagation(); handleAddLog(student.id, student.semesterRecords?.[0]?.id); }}
@@ -328,8 +544,23 @@ const MentorDashboard = () => {
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                        No mentees found.
+                      <td colSpan="7" style={{ padding: 0 }}>
+                        {searchTerm ? (
+                          <EmptyState
+                            compact
+                            icon={Search}
+                            title={`No mentee matches "${searchTerm}"`}
+                            description="Try a roll number or part of a name."
+                          />
+                        ) : (
+                          <EmptyState
+                            icon={Users}
+                            title="No mentees yet"
+                            description="Students appear here once they are assigned to you. You can claim unassigned students, or import a list if you look after a whole section."
+                            actionLabel="Import students"
+                            actionTo="/import?type=students"
+                          />
+                        )}
                       </td>
                     </tr>
                   )}
@@ -420,7 +651,18 @@ const MentorDashboard = () => {
                           </td>
                         </tr>
                       ))}
-                      {unassigned.length === 0 && <tr><td colSpan="3" style={{ textAlign: 'center', padding: '1rem' }}>No unassigned students found.</td></tr>}
+                      {unassigned.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ padding: 0 }}>
+                            <EmptyState
+                              compact
+                              icon={Users}
+                              title="Nobody is waiting to be claimed"
+                              description="Every student in your department already has a mentor."
+                            />
+                          </td>
+                        </tr>
+                      )}
                    </tbody>
                  </table>
                </div>

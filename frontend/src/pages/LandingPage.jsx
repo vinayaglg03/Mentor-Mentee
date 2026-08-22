@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { atLeast } from '../lib/permissions';
+import { useAuth } from '../context/useAuth';
 import { motion } from 'framer-motion';
 import { GraduationCap, ArrowRight, Shield, BarChart3, BellRing, Target } from 'lucide-react';
 import './LandingPage.css';
@@ -10,7 +11,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   const handleGoToDashboard = () => {
-    if (user.role === 'ADMIN') navigate('/hod/dashboard');
+    if (atLeast(user, 'COORDINATOR')) navigate('/hod/dashboard');
     else navigate('/mentor/dashboard');
   };
 

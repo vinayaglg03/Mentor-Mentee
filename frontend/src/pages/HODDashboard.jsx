@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye, ChevronDown, MessageSquare } from 'lucide-react';
@@ -10,7 +9,6 @@ import StatCard from '../components/StatCard';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const HODDashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('overview');
@@ -52,7 +50,7 @@ const HODDashboard = () => {
     try {
       await api.put(`/hod/students/${studentId}/assign`, { mentorId });
       fetchData();
-    } catch (err) {
+    } catch {
       alert("Assignment failed");
     }
   };

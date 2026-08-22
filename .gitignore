@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+# Local environment files
+.env
+.env.local
+
+# Presentation and other large binaries do not belong in the repo
+*.pptx
+
+# Docker: local environment and backups stay out of git
+.env
+backups/

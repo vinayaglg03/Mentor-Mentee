@@ -1,0 +1,135 @@
+# AMIS, self-hosted. Everything below reads from one .env file in this
+# directory: copy .env.docker.example to .env, fill it in, and run
+#
+#   docker compose up -d
+#
+# See docs/DEPLOYMENT.md for the step-by-step version.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-amis}
+      # Deterministic collation, so ordering does not change under you.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-amis} -d ${POSTGRES_DB:-amis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published: only the other containers need to reach it. Use the
+    # backup service or `docker compose exec` to get at it.
+    expose:
+      - "5432"
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-amis}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-amis}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      PORT: 5000
+      NODE_ENV: production
+      APP_URL: ${APP_URL:-http://localhost}
+      CORS_ORIGINS: ${APP_URL:-http://localhost}
+      # Sign-in
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${APP_URL:-http://localhost}/api/auth/google/callback
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+      AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # Branding on reports
+      COLLEGE_NAME: ${COLLEGE_NAME:-Your College}
+      COLLEGE_ADDRESS: ${COLLEGE_ADDRESS:-}
+      COLLEGE_DEPARTMENT: ${COLLEGE_DEPARTMENT:-}
+      # Email
+      MAIL_DRIVER: ${MAIL_DRIVER:-console}
+      MAIL_FROM: ${MAIL_FROM:-AMIS <no-reply@localhost>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # Monitoring
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      APP_VERSION: ${APP_VERSION:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # Audit archives written by the retention job survive a rebuild.
+      - api-archive:/app/archive
+    expose:
+      - "5000"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Same origin as the app: the proxy sends /api to the API container.
+        VITE_API_URL: ${APP_URL:-http://localhost}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_APP_VERSION: ${APP_VERSION:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"
+
+  # Caddy terminates TLS and gets a certificate automatically from Let's
+  # Encrypt when APP_DOMAIN is a real hostname. On localhost it serves plain
+  # HTTP, which is what you want while testing.
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # Runs pg_dump every night and keeps the last 14 days in ./backups.
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c '
+        echo "Nightly backups are on. Files go to ./backups, 14 days are kept.";
+        while true; do
+          STAMP=$$(date +%Y-%m-%d-%H%M);
+          pg_dump -h postgres -U ${POSTGRES_USER:-amis} -d ${POSTGRES_DB:-amis} -Fc
+            > /backups/amis-$$STAMP.dump 2>/backups/last-backup.log
+            && echo "Backed up to amis-$$STAMP.dump"
+            || echo "Backup FAILED, see backups/last-backup.log";
+          find /backups -name "amis-*.dump" -mtime +14 -delete;
+          sleep 86400;
+        done
+      '
+
+volumes:
+  postgres-data:
+  api-archive:
+  caddy-data:
+  caddy-config:

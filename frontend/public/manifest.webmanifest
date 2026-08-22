@@ -1,0 +1,42 @@
+{
+  "name": "AMIS \u2014 Academic Mentor Intelligence System",
+  "short_name": "AMIS",
+  "description": "Mentee tracking for college faculty: marks, attendance, alerts and mentoring records.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Needs attention",
+      "short_name": "Attention",
+      "url": "/mentor/dashboard",
+      "description": "Mentees with open alerts, follow-ups due, and nobody spoken to recently"
+    },
+    {
+      "name": "Mark entry",
+      "short_name": "Marks",
+      "url": "/marks/entry"
+    }
+  ]
+}

@@ -74,6 +74,16 @@
   border-left: 4px solid var(--danger);
 }
 
+.info-alert {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--c-primary-dark);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--c-primary);
+}
+
 .btn-link {
   font-size: 14px;
   color: var(--c-primary-dark);
@@ -81,4 +91,32 @@
 
 .btn-link:hover {
   text-decoration: underline;
+}
+
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: white;
+  color: #3c4043;
+  border: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+.btn-google:hover {
+  background: #f8fafc;
+  border-color: #c6cbd2;
+}
+
+.btn-google:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+.auth-hint {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 0.75rem 0 0 0;
 }

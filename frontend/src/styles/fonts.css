@@ -1,0 +1,30 @@
+/* Fonts, served from our own origin ------------------------------------------
+
+   Self-hosted through @fontsource rather than linked from Google Fonts:
+
+   - AMIS is installable and works offline, and a font that has to come from
+     fonts.gstatic.com does not.
+   - A college network that filters or throttles third-party hosts still gets
+     the right typeface instead of a fallback.
+   - It is one fewer place a request from a faculty member's browser is
+     logged, which is the position docs/PRIVACY.md takes everywhere else.
+   - No extra connection to open before the first paint.
+
+   Only the subsets and weights actually used are imported.
+
+   Latin text and every numeral come from IBM Plex Sans, which is listed
+   second in --font-ui: the Devanagari face is only loaded for its Devanagari
+   subset, so Latin falls through to Plex Sans by unicode-range. The variable
+   file covers 400-700 in one download.
+*/
+
+/* Latin, Latin Extended, and the numerals - one variable file. */
+@import '@fontsource-variable/ibm-plex-sans/wght.css';
+
+/* Devanagari glyphs only: the wordmark, the landing eyebrows, the Sanskrit. */
+@import '@fontsource/ibm-plex-sans-devanagari/devanagari-400.css';
+@import '@fontsource/ibm-plex-sans-devanagari/devanagari-500.css';
+@import '@fontsource/ibm-plex-sans-devanagari/devanagari-700.css';
+
+/* Display accent, landing page only. One weight, Devanagari subset only. */
+@import '@fontsource/tiro-devanagari-hindi/devanagari-400.css';

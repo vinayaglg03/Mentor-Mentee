@@ -1,7 +1,7 @@
 .empty-state {
   text-align: center;
   padding: 2.5rem 1.5rem;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
 }
 
 .empty-state.is-compact { padding: 1.5rem 1rem; }
@@ -13,8 +13,8 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #f1f5f9;
-  color: var(--c-primary);
+  background: var(--surface-sunken);
+  color: var(--accent-text);
   margin-bottom: 0.75rem;
 }
 
@@ -22,7 +22,7 @@
 
 .empty-state h4 {
   margin: 0 0 0.35rem 0;
-  color: var(--c-darkest, #111827);
+  color: var(--text-primary);
   font-size: 15px;
 }
 

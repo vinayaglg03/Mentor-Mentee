@@ -2,13 +2,13 @@
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: calc(100vh - 80px);
-  background: var(--bg-base);
+  background: var(--surface);
 }
 
 /* Timeline Navigation Sidebar */
 .timeline-nav {
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-light);
+  background: var(--surface-raised);
+  border-right: 1px solid var(--border);
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -21,7 +21,7 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   margin-bottom: 2rem;
   display: flex;
   align-items: center;
@@ -47,7 +47,7 @@
 }
 
 .timeline-link:hover {
-  background: var(--bg-subtle);
+  background: var(--surface-sunken);
 }
 
 .timeline-link.active {
@@ -69,7 +69,7 @@
 .timeline-link .sem-num {
   width: 32px;
   height: 32px;
-  background: var(--bg-subtle);
+  background: var(--surface-sunken);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -80,14 +80,14 @@
 }
 
 .timeline-link.active .sem-num {
-  background: var(--info);
-  color: white;
+  background: var(--accent-solid);
+  color: var(--text-on-accent);
 }
 
 /* Student Profile Section */
 .student-profile-glass {
-  background: linear-gradient(135deg, var(--c-darker) 0%, var(--c-darkest) 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--chrome-bg-raised) 0%, var(--chrome-bg) 100%);
+  color: var(--chrome-fg);
   padding: 2.5rem;
   border-radius: var(--radius-xl);
   margin-bottom: 2rem;
@@ -111,7 +111,7 @@
 }
 
 .profile-main h1 {
-  color: white;
+  color: var(--chrome-fg);
   font-size: 2.25rem;
   margin-bottom: 0.5rem;
 }
@@ -150,7 +150,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   transition: background 0.2s;
 }
 
@@ -159,18 +159,18 @@
 }
 
 .item-card:hover {
-  background: var(--bg-subtle);
+  background: var(--surface-sunken);
 }
 
 .item-icon {
   width: 40px;
   height: 40px;
-  background: var(--bg-subtle);
+  background: var(--surface-sunken);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--c-primary);
+  color: var(--accent-text);
 }
 
 .log-entry {
@@ -186,7 +186,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--border-light);
+  background: var(--border);
 }
 
 .log-entry::after {
@@ -196,9 +196,9 @@
   top: 0.25rem;
   width: 10px;
   height: 10px;
-  background: var(--c-primary);
+  background: var(--accent);
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--surface-raised);
 }
 
 /* Utility Animations */
@@ -224,7 +224,7 @@
   display: flex;
   gap: 1rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .activity-when {
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   white-space: nowrap;
   min-width: 150px;
 }

@@ -15,16 +15,37 @@
   <meta name="theme-color" content="#1d4ed8" />
 
   <!--
-    Fonts were being pulled by an @import on line 1 of index.css, which is
-    both render-blocking and serialised: the browser cannot even discover the
-    font request until index.css has downloaded and parsed. Requesting them
-    here lets the connection open in parallel with the stylesheet.
-    Three weights only (400/500/700) - the previous request asked for ten.
+    Fonts are self-hosted through @fontsource and imported by main.jsx; see
+    src/styles/fonts.css for why they are not linked from Google.
   -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Outfit:wght@400;500;700&display=swap" />
+
+  <!--
+    Runs before React, and before the first paint. Without it the page paints
+    the light palette, React mounts, and the theme snaps to dark ~200ms later,
+    which reads as a broken app rather than a preference.
+
+    localStorage is the mirror, not the source of truth: the server copy is
+    fetched after mount and wins. See context/ThemeContext.jsx.
+  -->
+  <script>
+    (function () {
+      try {
+        var root = document.documentElement;
+        var theme = localStorage.getItem('amis-theme');
+        // 'system' (or nothing stored) leaves the attribute off, so the
+        // prefers-color-scheme rules in index.css decide.
+        if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
+
+        var density = localStorage.getItem('amis-density');
+        if (density === 'compact') root.setAttribute('data-density', density);
+
+        var motion = localStorage.getItem('amis-motion');
+        if (motion === 'reduced' || motion === 'full') root.setAttribute('data-motion', motion);
+      } catch (e) {
+        /* Private mode with storage blocked: fall through to system defaults. */
+      }
+    })();
+  </script>
 </head>
 
 <body>

@@ -9,7 +9,7 @@
     rgba(180, 83, 9, 0.14) 10px,
     rgba(180, 83, 9, 0.14) 20px
   );
-  color: #92400e;
+  color: var(--warning-fg);
   border: 1px solid rgba(180, 83, 9, 0.3);
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.9rem;
@@ -18,7 +18,7 @@
 }
 
 .demo-banner code {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface-raised);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
   font-size: 12px;

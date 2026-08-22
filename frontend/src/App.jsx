@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from './components/Toaster';
 import { useAuth } from './context/useAuth';
 import { can, homeFor } from './lib/permissions';
@@ -161,11 +162,13 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Toaster>
-          <AppRoutes />
-        </Toaster>
-      </Router>
+      <ThemeProvider>
+        <Router>
+          <Toaster>
+            <AppRoutes />
+          </Toaster>
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

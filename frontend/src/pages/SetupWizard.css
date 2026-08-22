@@ -28,24 +28,24 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.9rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: white;
+  background: var(--surface-raised);
   font-size: 13px;
   cursor: pointer;
 }
 
-.setup-step:hover { border-color: var(--c-primary); }
+.setup-step:hover { border-color: var(--accent-text); }
 
 .setup-step.is-active {
-  border-color: var(--c-primary);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .setup-step.is-done .setup-step-icon {
-  background: #047857;
-  color: white;
-  border-color: #047857;
+  background: var(--success-fg);
+  color: var(--text-on-accent);
+  border-color: var(--success-fg);
 }
 
 .setup-step-icon {
@@ -55,16 +55,16 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--border-color);
-  color: var(--fg-muted);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
 }
 
 .setup-step-count {
-  background: #f1f5f9;
+  background: var(--surface-sunken);
   border-radius: 999px;
   padding: 0 0.45rem;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
 }
 
 .setup-card { padding: 1.5rem; }

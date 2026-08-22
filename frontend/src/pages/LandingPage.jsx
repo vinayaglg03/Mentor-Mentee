@@ -19,7 +19,7 @@ const LandingPage = () => {
     <div className="landing-page">
       <nav className="lp-nav">
         <div className="lp-logo flex-between" style={{ gap: '0.75rem' }}>
-          <GraduationCap size={32} color="var(--c-primary)" />
+          <GraduationCap size={32} color="var(--accent-text)" />
           <span>AMIS</span>
         </div>
         <div className="lp-nav-actions">
@@ -128,7 +128,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <footer style={{ padding: '6rem 2rem', background: 'var(--c-darkest)', color: 'white' }}>
+      <footer style={{ padding: '6rem 2rem', background: 'var(--chrome-bg)', color: 'var(--text-on-accent)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="lp-logo flex-between" style={{ gap: '0.75rem', opacity: 0.6 }}>
             <GraduationCap size={24} />

@@ -227,7 +227,7 @@ const MentorDashboard = () => {
     <div className="dashboard-view">
       <header className="page-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div className="icon-badge" style={{ background: 'var(--c-primary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'white' }}>
+          <div className="icon-badge" style={{ background: 'var(--accent-solid)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-on-accent)' }}>
             <Users size={24} />
           </div>
           <div>
@@ -237,11 +237,11 @@ const MentorDashboard = () => {
         </div>
         <div className="header-stats" style={{ display: 'flex', gap: '2rem' }}>
           <div className="header-stat">
-            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700 }}>Total Mentees</label>
-            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--c-primary)' }}>{(students || []).length}</span>
+            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Total Mentees</label>
+            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-text)' }}>{(students || []).length}</span>
           </div>
           <div className="header-stat">
-            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700 }}>Active Alerts</label>
+            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Active Alerts</label>
             <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--danger)' }}>{(students || []).filter(s => s?.semesterRecords?.[0]?.alerts?.length > 0).length}</span>
           </div>
         </div>
@@ -302,7 +302,7 @@ const MentorDashboard = () => {
       {/* Alerts Panel */}
       <div className="card mt-4" hidden={tab !== 'all'}>
         <div className="card-header flex-between">
-          <h3>Current Alerts <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>{activeAlerts.length}</span></h3>
+          <h3>Current Alerts <span className="badge" style={{ background: 'var(--danger)', color: 'var(--text-on-accent)' }}>{activeAlerts.length}</span></h3>
         </div>
         <div className="card-body">
           {(activeAlerts || [])?.length > 0 ? (
@@ -331,7 +331,7 @@ const MentorDashboard = () => {
         <div className="card-header flex-between">
           <h3>
             Follow-ups due{' '}
-            <span className="badge" style={{ background: followUps.some(f => f.overdue) ? 'var(--danger)' : 'var(--c-primary)', color: 'white' }}>
+            <span className="badge" style={{ background: followUps.some(f => f.overdue) ? 'var(--danger)' : 'var(--accent-solid)', color: 'var(--text-on-accent)' }}>
               {followUps.length}
             </span>
           </h3>
@@ -382,7 +382,7 @@ const MentorDashboard = () => {
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
             <h3>My Assigned Students</h3>
-            <div className="search-box" style={{ width: '250px', background: '#f4f7fa', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="search-box" style={{ width: '250px', background: 'var(--surface-sunken)', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <Search size={16} className="text-muted" />
               <input 
                 type="text" 
@@ -454,7 +454,7 @@ const MentorDashboard = () => {
                       </tr>
                       {expandedStudentId === student.id && (
                         <tr className="expanded-row-bg">
-                          <td colSpan="7" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                          <td colSpan="7" style={{ padding: '1.5rem', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', gap: '2rem' }}>
                               <div style={{ flex: 1 }}>
                                 <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -462,10 +462,10 @@ const MentorDashboard = () => {
                                 </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                   {(student.semesterRecords || []).map(record => (
-                                    <div key={record.id} className="card" style={{ padding: '1rem', background: 'white' }}>
-                                      <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--c-primary)' }}>Semester {record.semester}</h5>
+                                    <div key={record.id} className="card" style={{ padding: '1rem', background: 'var(--surface-raised)' }}>
+                                      <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-text)' }}>Semester {record.semester}</h5>
                                       {(record.progressLogs || []).length > 0 ? (
-                                        <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--c-darkest)', fontSize: '14px' }}>
+                                        <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--text-primary)', fontSize: '14px' }}>
                                           {(record.progressLogs || []).map(log => (
                                             <li key={log.id} style={{ marginBottom: '0.5rem' }}>
                                               {log?.remark} <span className="text-muted" style={{ fontSize: '11px', marginLeft: '0.5rem' }}>{new Date(log?.date).toLocaleDateString()}</span>
@@ -480,7 +480,7 @@ const MentorDashboard = () => {
                                 </div>
                               </div>
                               <div style={{ width: '300px' }}>
-                                <div className="card" style={{ padding: '1rem', background: 'white', position: 'sticky', top: '1rem' }}>
+                                <div className="card" style={{ padding: '1rem', background: 'var(--surface-raised)', position: 'sticky', top: '1rem' }}>
                                   <h5 style={{ margin: '0 0 1rem 0' }}>Add Log (Sem {student.semesterRecords?.[0]?.semester || '?'})</h5>
                                   <textarea
                                     className="input-control"
@@ -518,7 +518,7 @@ const MentorDashboard = () => {
                                     onClick={(e) => e.stopPropagation()}
                                     onChange={(e) => setNewLog({ ...newLog, actionItems: e.target.value })}
                                   />
-                                  <label style={{ fontSize: '11px', color: 'var(--fg-muted)' }}>Follow up on</label>
+                                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Follow up on</label>
                                   <input
                                     type="date"
                                     className="input-control"

@@ -40,7 +40,7 @@ const Sidebar = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo-icon">
-          <GraduationCap size={28} color="white" />
+          <GraduationCap size={28} color="var(--chrome-fg)" />
         </div>
         <h2>AMIS</h2>
       </div>

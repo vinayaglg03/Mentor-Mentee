@@ -1,8 +1,8 @@
 .stat-card {
-  background: white;
+  background: var(--surface-raised);
   padding: 1.5rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
   gap: 1.25rem;
@@ -15,7 +15,7 @@
 .stat-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-premium);
-  border-color: var(--c-lightest);
+  border-color: var(--accent);
 }
 
 .stat-card::after {
@@ -25,7 +25,7 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: var(--c-primary);
+  background: var(--accent);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -44,7 +44,7 @@
   flex-shrink: 0;
 }
 
-.icon-primary { background: rgba(70, 150, 218, 0.1); color: var(--c-primary); }
+.icon-primary { background: rgba(70, 150, 218, 0.1); color: var(--accent-text); }
 .icon-info { background: rgba(59, 130, 246, 0.1); color: var(--info); }
 .icon-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 .icon-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
@@ -53,14 +53,14 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .stat-details p {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xl);
   font-weight: 700;
-  color: var(--c-darkest);
+  color: var(--text-primary);
   line-height: 1;
 }

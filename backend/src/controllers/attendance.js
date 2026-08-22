@@ -1,6 +1,7 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere } from '../lib/access.js';
 import { validateAttendance, saveAttendance, attendancePercent } from '../lib/scoring.js';
+import { requireDepartment } from '../lib/departments.js';
 
 const resolveSemesterRecord = async (client, { studentId, semester, academicYear }) => {
   const existing = await client.semesterRecord.findUnique({
@@ -85,13 +86,14 @@ export const getClassAttendance = async (req, res, next) => {
 
     const sem = Number(semester);
     const year = Number(academicYear);
+    const departmentRow = await requireDepartment(department);
 
     const students = await prisma.student.findMany({
       where: {
         status: 'ACTIVE',
-        department,
+        departmentId: departmentRow.id,
         currentSemester: sem,
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
       },
       orderBy: { rollNumber: 'asc' },
       select: {

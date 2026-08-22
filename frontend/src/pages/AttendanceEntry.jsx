@@ -51,16 +51,16 @@ const AttendanceEntry = () => {
 
   const cellRefs = useRef({});
 
-  useEffect(() => {
-    api.get('/subjects')
-      .then(({ data }) => setSubjects(data))
-      .catch(() => setError('Could not load subjects.'));
-  }, []);
+  const [departments, setDepartments] = useState([]);
 
-  const departments = useMemo(
-    () => [...new Set(subjects.map(s => s.department).filter(Boolean))].sort(),
-    [subjects]
-  );
+  useEffect(() => {
+    Promise.all([api.get('/subjects'), api.get('/departments')])
+      .then(([subjectList, departmentList]) => {
+        setSubjects(subjectList.data);
+        setDepartments(departmentList.data);
+      })
+      .catch(() => setError('Could not load subjects and departments.'));
+  }, []);
 
   const subjectOptions = useMemo(
     () => subjects.filter(s =>
@@ -255,7 +255,9 @@ const AttendanceEntry = () => {
             onChange={e => setFilters({ ...filters, department: e.target.value, subjectId: '' })}
           >
             <option value="">Select…</option>
-            {departments.map(department => <option key={department} value={department}>{department}</option>)}
+            {departments.map(department => (
+              <option key={department.id} value={department.code}>{department.code} — {department.name}</option>
+            ))}
           </select>
         </div>
 

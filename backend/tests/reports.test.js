@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import ExcelJS from 'exceljs';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader, createHod } from './helpers.js';
 import { DEFAULT_BANDS } from '../src/lib/gpa.js';
 
 let mentor, other, admin, subject;
@@ -12,7 +12,7 @@ beforeEach(async () => {
   await prisma.gradeBand.createMany({ data: DEFAULT_BANDS });
   mentor = await createUser({ role: 'MENTOR', maxStudents: 100 });
   other = await createUser({ role: 'MENTOR' });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
   subject = await createSubject({ semester: 3 });
 });
 

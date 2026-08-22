@@ -1,5 +1,6 @@
 import prisma from '../../prismaClient.js';
 import { attendancePercent } from '../scoring.js';
+import { studentScopeWhere } from '../access.js';
 import {
   createDocument, drawLetterhead, sectionHeading, table, labelledFields,
   finalise, COLOURS,
@@ -10,13 +11,13 @@ const round = (value) => Math.round(value * 10) / 10;
 
 // Everything the HOD summary needs, scoped to the caller's mentees unless
 // they are an ADMIN.
-export const loadClassSummaryData = async ({ user, department, semester, academicYear }) => {
+export const loadClassSummaryData = async ({ user, departmentId, semester, academicYear }) => {
   const students = await prisma.student.findMany({
     where: {
       status: 'ACTIVE',
-      department,
+      departmentId,
       currentSemester: semester,
-      ...(user.role === 'ADMIN' ? {} : { mentorId: user.id }),
+      ...(await studentScopeWhere(user)),
     },
     orderBy: { rollNumber: 'asc' },
     include: {

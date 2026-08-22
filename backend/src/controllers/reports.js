@@ -1,11 +1,20 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent, NotFoundError } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere, loadScope, NotFoundError } from '../lib/access.js';
 import { streamToResponse } from '../lib/reports/pdf.js';
 import { loadMentoringReportData, buildMentoringReport } from '../lib/reports/mentoringReport.js';
 import { loadClassSummaryData, buildClassSummary } from '../lib/reports/classSummary.js';
 import { buildAtRiskWorkbook, buildMarksSheetWorkbook, streamWorkbook } from '../lib/reports/excel.js';
+import { requireDepartment, findDepartment } from '../lib/departments.js';
 
 const slug = (value) => String(value || '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+
+// Says on the page whose students the figures actually cover, so a scoped
+// report is never mistaken for a whole-class one.
+const scopeLabel = async (user) => {
+  const scope = await loadScope(user);
+  if (scope.role === 'SUPER_ADMIN' || scope.role === 'HOD') return null;
+  return scope.role === 'COORDINATOR' ? 'Your sections only' : 'Your mentees only';
+};
 
 // The document a mentor signs and files each semester.
 export const mentoringReport = async (req, res, next) => {
@@ -30,25 +39,26 @@ export const classSummary = async (req, res, next) => {
 
     const sem = Number(semester);
     const year = Number(academicYear);
+    const departmentRow = await requireDepartment(department);
 
     const students = await loadClassSummaryData({
       user: req.user,
-      department,
+      departmentId: departmentRow.id,
       semester: sem,
       academicYear: year,
     });
 
     const doc = buildClassSummary({
       students,
-      department,
+      department: departmentRow.name,
       semester: sem,
       academicYear: year,
       // A mentor only ever sees their own mentees, so say so on the page
       // rather than letting it read as a whole-class figure.
-      scopedTo: req.user.role === 'ADMIN' ? null : 'Your mentees only',
+      scopedTo: await scopeLabel(req.user),
     });
 
-    streamToResponse(doc, res, `class-summary-${slug(department)}-sem${sem}-${year}.pdf`);
+    streamToResponse(doc, res, `class-summary-${slug(departmentRow.code)}-sem${sem}-${year}.pdf`);
   } catch (error) {
     next(error);
   }
@@ -58,13 +68,14 @@ export const atRiskExport = async (req, res, next) => {
   try {
     const { department, semester } = req.query;
     const sem = semester ? Number(semester) : null;
+    const departmentRow = department ? await requireDepartment(department) : null;
 
     const students = await prisma.student.findMany({
       where: {
         status: 'ACTIVE',
-        ...(department ? { department } : {}),
+        ...(departmentRow ? { departmentId: departmentRow.id } : {}),
         ...(sem ? { currentSemester: sem } : {}),
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
         semesterRecords: { some: { alerts: { some: { resolved: false } } } },
       },
       orderBy: { rollNumber: 'asc' },
@@ -80,8 +91,8 @@ export const atRiskExport = async (req, res, next) => {
       },
     });
 
-    const workbook = buildAtRiskWorkbook({ students, department, semester: sem });
-    const name = ['at-risk', department && slug(department), sem && `sem${sem}`].filter(Boolean).join('-');
+    const workbook = buildAtRiskWorkbook({ students, department: departmentRow?.name, semester: sem });
+    const name = ['at-risk', departmentRow && slug(departmentRow.code), sem && `sem${sem}`].filter(Boolean).join('-');
     await streamWorkbook(workbook, res, `${name}.xlsx`);
   } catch (error) {
     next(error);
@@ -94,6 +105,7 @@ export const marksSheetExport = async (req, res, next) => {
 
     const sem = Number(semester);
     const year = Number(academicYear);
+    const departmentRow = await requireDepartment(department);
 
     const subject = await prisma.subject.findUnique({
       where: { id: subjectId },
@@ -104,9 +116,9 @@ export const marksSheetExport = async (req, res, next) => {
     const students = await prisma.student.findMany({
       where: {
         status: 'ACTIVE',
-        department,
+        departmentId: departmentRow.id,
         currentSemester: sem,
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
       },
       orderBy: { rollNumber: 'asc' },
       select: {
@@ -139,7 +151,7 @@ export const marksSheetExport = async (req, res, next) => {
       };
     });
 
-    const workbook = buildMarksSheetWorkbook({ rows, subject, department, semester: sem, academicYear: year });
+    const workbook = buildMarksSheetWorkbook({ rows, subject, department: departmentRow.name, semester: sem, academicYear: year });
     await streamWorkbook(workbook, res, `marks-${slug(subject.code)}-sem${sem}-${year}.xlsx`);
   } catch (error) {
     next(error);

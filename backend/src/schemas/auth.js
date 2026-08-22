@@ -24,10 +24,23 @@ export const createUserSchema = {
     name: requiredText('Name', 120),
     email,
     password,
-    role: z.enum(['MENTOR', 'ADMIN']),
+    role: z.enum(['SUPER_ADMIN', 'HOD', 'COORDINATOR', 'MENTOR']),
+    departmentId: uuid.optional(),
   })
 };
 
 export const approveUserSchema = {
   params: z.object({ id: uuid })
+};
+
+export const setUserDepartmentSchema = {
+  params: z.object({ id: uuid }),
+  body: z.object({ departmentId: uuid.nullable() })
+};
+
+export const setUserRoleSchema = {
+  params: z.object({ id: uuid }),
+  body: z.object({
+    role: z.enum(['SUPER_ADMIN', 'HOD', 'COORDINATOR', 'MENTOR']),
+  })
 };

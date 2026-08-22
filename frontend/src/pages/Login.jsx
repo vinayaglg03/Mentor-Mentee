@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import api from '../services/api';
+import { homeFor } from '../lib/permissions';
 import './Login.css';
 
 const Login = () => {
@@ -35,11 +36,7 @@ const Login = () => {
         const { data } = await api.post('/auth/login', { email, password });
         login(data.user, data.token);
         
-        if (data.user.role === 'ADMIN') {
-          navigate('/hod/dashboard');
-        } else {
-          navigate('/mentor/dashboard');
-        }
+        navigate(homeFor(data.user));
       } else {
         await api.post('/auth/register', { name, email, password });
         setIsLogin(true);

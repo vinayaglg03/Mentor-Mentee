@@ -13,17 +13,27 @@ model User {
   password     String
   role         Role          @default(MENTOR)
   approved     Boolean       @default(false)
+  // The department a HOD heads, or the one a coordinator/mentor belongs to.
+  departmentId String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   maxStudents  Int           @default(30)
   progressLogs ProgressLog[]
   students     Student[]     @relation("AssignedStudents")
+  department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  rollovers    SemesterRollover[] @relation("RolloverActor")
+  auditEntries AuditLog[]         @relation("AuditActor")
+  headedDepartments Department[] @relation("DepartmentHod")
+  coordinatedSections Section[]  @relation("SectionCoordinator")
+
+  @@index([departmentId])
 }
 
 model Student {
   id                  String           @id @default(uuid())
   name                String
   rollNumber          String           @unique
+  /// @deprecated Replaced by departmentId. Kept for one release so a rollback is possible.
   department          String
   currentYear         Int              @default(1)
   currentSemester     Int              @default(1)
@@ -35,10 +45,71 @@ model Student {
   mentorId            String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
+  departmentId        String
+  batchId             String
+  sectionId           String?
+
   mentor              User?            @relation("AssignedStudents", fields: [mentorId], references: [id])
+  departmentRef       Department       @relation(fields: [departmentId], references: [id])
+  batch               Batch            @relation(fields: [batchId], references: [id])
+  section             Section?         @relation(fields: [sectionId], references: [id])
   semesterRecords     SemesterRecord[]
 
   @@index([mentorId])
+  @@index([departmentId])
+  @@index([batchId])
+  @@index([sectionId])
+}
+
+// A department is the top-level tenant boundary: a HOD sees exactly one.
+model Department {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  hodId     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hod       User?     @relation("DepartmentHod", fields: [hodId], references: [id])
+  members   User[]    @relation("DepartmentMembers")
+  students  Student[]
+  subjects  Subject[]
+  batches   Batch[]
+}
+
+// One intake of students, e.g. CSE 2024. Promotion happens per batch.
+model Batch {
+  id              String   @id @default(uuid())
+  departmentId    String
+  admissionYear   Int
+  currentSemester Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  department      Department @relation(fields: [departmentId], references: [id])
+  sections        Section[]
+  students        Student[]
+  rollovers       SemesterRollover[]
+
+  @@unique([departmentId, admissionYear])
+  @@index([departmentId])
+}
+
+model Section {
+  id            String   @id @default(uuid())
+  batchId       String
+  name          String
+  coordinatorId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  batch         Batch     @relation(fields: [batchId], references: [id])
+  coordinator   User?     @relation("SectionCoordinator", fields: [coordinatorId], references: [id])
+  students      Student[]
+
+  @@unique([batchId, name])
+  @@index([batchId])
+  @@index([coordinatorId])
 }
 
 model SemesterRecord {
@@ -66,12 +137,18 @@ model Subject {
   id           String  @id @default(uuid())
   name         String
   code         String  @unique
+  /// @deprecated Replaced by departmentId. Kept for one release so a rollback is possible.
   department   String
+  departmentId String
   academicYear Int
   semester     Int     @default(1)
   credits      Int     @default(3)
-  scores       Score[]
-  attendance   Attendance[]
+
+  departmentRef Department  @relation(fields: [departmentId], references: [id])
+  scores        Score[]
+  attendance    Attendance[]
+
+  @@index([departmentId])
 }
 
 model Achievement {
@@ -161,6 +238,48 @@ model PendingImport {
   @@index([expiresAt])
 }
 
+// One record per promotion run: who ran it, when, and what it did. Also what
+// makes a second run safe - the run is keyed to the semester it started from.
+model SemesterRollover {
+  id             String   @id @default(uuid())
+  batchId        String
+  actorId        String?
+  fromSemester   Int
+  toSemester     Int
+  promoted       Int      @default(0)
+  graduated      Int      @default(0)
+  skipped        Int      @default(0)
+  details        Json?
+  createdAt      DateTime @default(now())
+
+  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  actor          User?    @relation("RolloverActor", fields: [actorId], references: [id])
+
+  @@index([batchId])
+}
+
+// Append-only. Nothing in the application updates or deletes these rows;
+// the only removal is the retention job, which archives before it prunes.
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorRole  String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
 // The grade scale is data, not code: colleges change it between regulation
 // schemes, and an ADMIN can edit the bands without a redeploy.
 model GradeBand {
@@ -174,9 +293,13 @@ model GradeBand {
   @@index([minScore])
 }
 
+// SUPER_ADMIN sees the institution, HOD their department, COORDINATOR their
+// section(s), MENTOR their own mentees.
 enum Role {
+  SUPER_ADMIN
+  HOD
+  COORDINATOR
   MENTOR
-  ADMIN
 }
 
 enum StudentStatus {

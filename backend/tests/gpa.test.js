@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, authHeader, createHod } from './helpers.js';
 import { gradeFor, weightedAverage, DEFAULT_BANDS } from '../src/lib/gpa.js';
 import { backfillGpa } from '../src/jobs/backfillGpa.js';
 
@@ -10,25 +10,14 @@ let mentor, admin;
 const seedGradeBands = () =>
   prisma.gradeBand.createMany({ data: DEFAULT_BANDS });
 
-const subjectWithCredits = async (credits, semester = 3) => {
-  const suffix = `${Date.now()}-${Math.round(credits * 1000)}-${semester}`;
-  return prisma.subject.create({
-    data: {
-      name: `Subject ${suffix}`,
-      code: `SUB-${suffix}-${Math.random().toString(36).slice(2, 7)}`,
-      department: 'CSE',
-      academicYear: 2026,
-      semester,
-      credits,
-    },
-  });
-};
+const subjectWithCredits = (credits, semester = 3) =>
+  createSubject({ credits, semester });
 
 beforeEach(async () => {
   await resetDatabase();
   await seedGradeBands();
   mentor = await createUser({ role: 'MENTOR', maxStudents: 100 });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
 });
 
 afterAll(() => prisma.$disconnect());

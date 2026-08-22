@@ -1,7 +1,8 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere } from '../lib/access.js';
 import { validateMarks, saveScore } from '../lib/scoring.js';
 import { updateGpaForSemesterRecords } from '../lib/gpa.js';
+import { requireDepartment } from '../lib/departments.js';
 
 // Finds the semester record a set of marks belongs to, creating it on first use.
 const resolveSemesterRecord = async (client, { studentId, semester, academicYear }) => {
@@ -145,13 +146,14 @@ export const getClassScores = async (req, res, next) => {
 
     const sem = Number(semester);
     const year = Number(academicYear);
+    const departmentRow = await requireDepartment(department);
 
     const students = await prisma.student.findMany({
       where: {
         status: 'ACTIVE',
-        department,
+        departmentId: departmentRow.id,
         currentSemester: sem,
-        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+        ...(await studentScopeWhere(req.user)),
       },
       orderBy: { rollNumber: 'asc' },
       select: {

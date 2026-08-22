@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/useAuth';
 import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
+import { can } from '../lib/permissions';
 import './MarksEntry.css';
 
 // Matches the thresholds the alert engine uses.
@@ -292,7 +293,7 @@ const MentorDashboard = () => {
                             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); openEditStudent(student); }} title="Edit Student">
                               <PlusCircle size={18} />
                             </button>
-                            {user?.role === 'ADMIN' && (
+                            {can(user, 'student:delete') && (
                               <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }} title="Delete Student" style={{ color: 'var(--danger)' }}>
                                 &times;
                               </button>

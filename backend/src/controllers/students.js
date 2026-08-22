@@ -1,14 +1,14 @@
 import prisma from '../prismaClient.js';
-import { assertCanAccessStudent } from '../lib/access.js';
+import { assertCanAccessStudent, studentScopeWhere, can } from '../lib/access.js';
 import { attendancePercent } from '../lib/scoring.js';
+import { ensureDepartment, ensureBatch, normaliseCode } from '../lib/departments.js';
 
 export const getAllStudents = async (req, res, next) => {
   try {
-    // Mentors only ever see their own mentees; HODs see everyone.
+    // Scope comes from lib/access.js: a mentor sees their mentees, a
+    // coordinator their sections, a HOD their department, a super admin all.
     // Students who left the programme are excluded from listings.
-    const where = req.user.role === 'ADMIN'
-      ? { status: 'ACTIVE' }
-      : { status: 'ACTIVE', mentorId: req.user.id };
+    const where = { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) };
 
     const students = await prisma.student.findMany({
       where,
@@ -91,10 +91,21 @@ export const createStudent = async (req, res, next) => {
       const cAcadYear = parseInt(currentAcademicYear) || new Date().getFullYear();
       const eYear = parseInt(enrollmentYear) || new Date().getFullYear();
 
+      // The free-text department resolves to a real Department, and the
+      // student lands in the batch for their admission year.
+      const departmentRow = await ensureDepartment(tx, department);
+      const batch = await ensureBatch(tx, {
+        departmentId: departmentRow.id,
+        admissionYear: eYear,
+        currentSemester: cSem,
+      });
+
       const stdData = { 
         name, 
         rollNumber, 
-        department, 
+        department: normaliseCode(department), 
+        departmentId: departmentRow.id,
+        batchId: batch.id,
         currentYear: cYear, 
         currentSemester: cSem,
         currentAcademicYear: cAcadYear,
@@ -132,19 +143,24 @@ export const updateStudent = async (req, res, next) => {
 
     await assertCanAccessStudent(req.user, id);
 
+    const departmentRow = department
+      ? await ensureDepartment(prisma, department)
+      : null;
+
     const student = await prisma.student.update({
       where: { id },
       data: { 
         name, 
         rollNumber, 
-        department, 
+        ...(departmentRow ? { department: departmentRow.code, departmentId: departmentRow.id } : {}), 
         currentYear: currentYear ? Number(currentYear) : undefined, 
         currentSemester: currentSemester ? Number(currentSemester) : undefined,
         currentAcademicYear: currentAcademicYear ? Number(currentAcademicYear) : undefined,
         enrollmentYear: enrollmentYear ? Number(enrollmentYear) : undefined,
         email,
         // Only a HOD may move a student to a different mentor.
-        mentorId: req.user.role === 'ADMIN' ? mentorId : undefined
+        // Only a coordinator or above may move a student to another mentor.
+        mentorId: (await can(req.user, 'student:assign')) ? mentorId : undefined
       }
     });
     res.json(student);

@@ -287,3 +287,14 @@ h1, h2, h3, h4, h5, h6 {
     padding: 1rem;
   }
 }
+
+/* Shown when a HOD or coordinator has no department or section assigned. */
+.scope-warning {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+  border-left: 4px solid #b45309;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+}

@@ -1,4 +1,5 @@
-import { ForbiddenError } from '../access.js';
+import { ForbiddenError, can, atLeast } from '../access.js';
+import { ensureDepartment, ensureBatch, normaliseCode } from '../departments.js';
 
 export const columns = [
   { key: 'name', header: 'Name', required: true, example: 'Asha Rao' },
@@ -43,7 +44,10 @@ export const validate = async ({ rows, user, prisma }) => {
   const mentorEmails = [...new Set(rows.map(r => String(r.values.mentorEmail ?? '').trim().toLowerCase()).filter(Boolean))];
 
   const [existingStudents, studentsWithEmail, mentors, self] = await Promise.all([
-    prisma.student.findMany({ where: { rollNumber: { in: rollNumbers } }, select: { id: true, rollNumber: true, mentorId: true } }),
+    prisma.student.findMany({
+      where: { rollNumber: { in: rollNumbers } },
+      select: { id: true, rollNumber: true, mentorId: true, departmentId: true, sectionId: true },
+    }),
     prisma.student.findMany({ where: { email: { in: emails } }, select: { id: true, email: true, rollNumber: true } }),
     prisma.user.findMany({ where: { email: { in: mentorEmails } }, select: mentorSelect }),
     prisma.user.findUnique({ where: { id: user.id }, select: mentorSelect }),
@@ -126,7 +130,7 @@ export const validate = async ({ rows, user, prisma }) => {
         add('Mentor Email', 'No user with that email.');
       } else if (mentor.role !== 'MENTOR') {
         add('Mentor Email', 'That account is not a mentor.');
-      } else if (user.role !== 'ADMIN' && mentor.id !== user.id) {
+      } else if (!atLeast(user, 'COORDINATOR') && mentor.id !== user.id) {
         add('Mentor Email', 'Mentors can only import students assigned to themselves.');
       } else {
         mentorId = mentor.id;
@@ -137,8 +141,8 @@ export const validate = async ({ rows, user, prisma }) => {
 
     const existing = rollNumber ? byRoll.get(rollNumber) : null;
 
-    if (existing && user.role !== 'ADMIN' && existing.mentorId !== user.id) {
-      add('Roll Number', 'That student is assigned to another mentor.');
+    if (existing && !(await can(user, 'student:write', existing))) {
+      add('Roll Number', 'That student is not in the group you look after.');
     }
 
     if (mentorId && (!existing || existing.mentorId !== mentorId)) {
@@ -161,7 +165,7 @@ export const validate = async ({ rows, user, prisma }) => {
       data: {
         name,
         rollNumber,
-        department,
+        department: normaliseCode(department),
         enrollmentYear,
         currentSemester,
         currentYear,
@@ -180,20 +184,42 @@ export const commit = async ({ rows, user, tx }) => {
   let created = 0;
   let updated = 0;
 
+  // Departments and batches are created once per file rather than per row.
+  const departments = new Map();
+  const batches = new Map();
+
+  const departmentFor = async (code) => {
+    if (!departments.has(code)) departments.set(code, await ensureDepartment(tx, code));
+    return departments.get(code);
+  };
+
+  const batchFor = async (departmentId, admissionYear, currentSemester) => {
+    const key = `${departmentId}|${admissionYear}`;
+    if (!batches.has(key)) {
+      batches.set(key, await ensureBatch(tx, { departmentId, admissionYear, currentSemester }));
+    }
+    return batches.get(key);
+  };
+
   for (const row of rows) {
     const { data } = row;
     const existing = await tx.student.findUnique({ where: { rollNumber: data.rollNumber } });
 
+    const departmentRow = await departmentFor(data.department);
+    const batch = await batchFor(departmentRow.id, data.enrollmentYear, data.currentSemester);
+
     if (existing) {
-      if (user.role !== 'ADMIN' && existing.mentorId !== user.id) {
-        throw new ForbiddenError('That student is assigned to another mentor.');
+      if (!(await can(user, 'student:write', existing))) {
+        throw new ForbiddenError('That student is not in the group you look after.');
       }
 
       await tx.student.update({
         where: { id: existing.id },
         data: {
           name: data.name,
-          department: data.department,
+          department: departmentRow.code,
+          departmentId: departmentRow.id,
+          batchId: batch.id,
           enrollmentYear: data.enrollmentYear,
           currentSemester: data.currentSemester,
           currentYear: data.currentYear,
@@ -204,7 +230,9 @@ export const commit = async ({ rows, user, tx }) => {
       });
       updated++;
     } else {
-      const student = await tx.student.create({ data });
+      const student = await tx.student.create({
+        data: { ...data, departmentId: departmentRow.id, batchId: batch.id },
+      });
 
       // Marks and alerts hang off a semester record, so every student needs one.
       await tx.semesterRecord.create({

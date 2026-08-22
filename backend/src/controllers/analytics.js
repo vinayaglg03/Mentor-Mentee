@@ -1,13 +1,22 @@
 import prisma from '../prismaClient.js';
+import { studentScopeWhere, loadScope } from '../lib/access.js';
 
 export const getHODAnalytics = async (req, res, next) => {
   try {
-    const totalStudents = await prisma.student.count({ where: { status: 'ACTIVE' } });
-    const totalMentors = await prisma.user.count({ where: { role: 'MENTOR' } });
+    // Every figure below is limited to what this user may see, so a HOD's
+    // dashboard is their department's dashboard.
+    const scope = await loadScope(req.user);
+    const studentWhere = { status: 'ACTIVE', ...(await studentScopeWhere(req.user)) };
+    const departmentWhere = scope.role === 'SUPER_ADMIN' || scope.departmentIds.length === 0
+      ? {}
+      : { departmentId: { in: scope.departmentIds } };
+
+    const totalStudents = await prisma.student.count({ where: studentWhere });
+    const totalMentors = await prisma.user.count({ where: { role: 'MENTOR', ...departmentWhere } });
     
     // 1. Performance Overview (Global) - Now querying via SemesterRecord links
     const recentScores = await prisma.score.findMany({
-      where: { finalScore: { not: null } },
+      where: { finalScore: { not: null }, semesterRecord: { student: studentWhere } },
       select: { finalScore: true }
     });
 
@@ -19,17 +28,19 @@ export const getHODAnalytics = async (req, res, next) => {
     });
 
     // 2. Alert Stats
-    const totalAlerts = await prisma.alert.count({ where: { resolved: false } });
+    const alertWhere = { resolved: false, semesterRecord: { student: studentWhere } };
+
+    const totalAlerts = await prisma.alert.count({ where: alertWhere });
     const alertsByTypeRow = await prisma.alert.groupBy({
       by: ['type'],
       _count: { type: true },
-      where: { resolved: false }
+      where: alertWhere
     });
     const alertsByType = alertsByTypeRow.map(a => ({ type: a.type, count: a._count.type }));
 
     // 3. Top Performers (based on avg final score across all semester records)
     const studentsWithRecords = await prisma.student.findMany({
-      where: { status: 'ACTIVE' },
+      where: studentWhere,
       include: { 
         semesterRecords: {
           include: { scores: true }
@@ -54,14 +65,14 @@ export const getHODAnalytics = async (req, res, next) => {
 
     // 4. Mentor-wise Student Distribution
     const mentors = await prisma.user.findMany({
-      where: { role: 'MENTOR' },
+      where: { role: 'MENTOR', ...departmentWhere },
       include: { _count: { select: { students: { where: { status: 'ACTIVE' } } } } }
     });
     const mentorDistribution = mentors.map(m => ({ name: m.name, studentCount: m._count.students }));
 
     // 5. Recent Critical Alerts
     const recentAlerts = await prisma.alert.findMany({
-      where: { resolved: false, severity: 'HIGH' },
+      where: { ...alertWhere, severity: 'HIGH' },
       take: 5,
       orderBy: { timestamp: 'desc' },
       include: { 

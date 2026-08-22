@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
-import { prisma, resetDatabase, createUser, createStudent, createSubject, createAlert, authHeader } from './helpers.js';
+import { prisma, resetDatabase, createUser, createStudent, createSubject, createAlert, authHeader, createHod } from './helpers.js';
 
 let mentorA, mentorB, admin, foreign, subject;
 
@@ -9,7 +9,7 @@ beforeEach(async () => {
   await resetDatabase();
   mentorA = await createUser({ role: 'MENTOR' });
   mentorB = await createUser({ role: 'MENTOR' });
-  admin = await createUser({ role: 'ADMIN' });
+  admin = await createHod();
   foreign = await createStudent({ mentorId: mentorB.id });
   subject = await createSubject({ semester: 3 });
 });

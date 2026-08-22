@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -7,29 +7,11 @@ import { useAuth } from './context/useAuth';
 import { can, homeFor } from './lib/permissions';
 import { SkeletonCards } from './components/Skeleton';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ROUTES } from './config/navigation';
+import { PAGES } from './config/pages';
 
 // Layout: on screen for every signed-in route, so it is not worth splitting.
 import DashboardLayout from './components/DashboardLayout';
-
-// Every page is loaded on demand. Statically importing all of them meant
-// somebody sitting on the login screen downloaded the marks grid, the student
-// detail page, chart.js and the rest before they could type a password.
-const Login = lazy(() => import('./pages/Login'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const MentorDashboard = lazy(() => import('./pages/MentorDashboard'));
-const HODDashboard = lazy(() => import('./pages/HODDashboard'));
-const StudentDetail = lazy(() => import('./pages/StudentDetail'));
-const ImportPage = lazy(() => import('./pages/ImportPage'));
-const MarksEntry = lazy(() => import('./pages/MarksEntry'));
-const AttendanceEntry = lazy(() => import('./pages/AttendanceEntry'));
-const ReportsPage = lazy(() => import('./pages/ReportsPage'));
-const BatchesPage = lazy(() => import('./pages/BatchesPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const UnsubscribePage = lazy(() => import('./pages/UnsubscribePage'));
-const AuthCallback = lazy(() => import('./pages/AuthCallback'));
-const SetupWizard = lazy(() => import('./pages/SetupWizard'));
-const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
-const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 
 // Shown while a route chunk is in flight. Shaped like a page rather than a
 // spinner, so the layout does not jump when the real thing arrives.
@@ -52,107 +34,47 @@ const ProtectedRoute = ({ children, require: required }) => {
 
 const AppRoutes = () => {
   const { user } = useAuth();
+  const NotFound = PAGES.NotFound;
+  const LandingPage = PAGES.LandingPage;
 
   return (
     <ErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          {/* The front door: the landing page for a visitor, their own
+              dashboard for anybody already signed in. */}
           <Route path="/" element={
-            user ? (
-              <Navigate to={homeFor(user)} replace />
-            ) : <LandingPage />
+            user ? <Navigate to={homeFor(user)} replace /> : <LandingPage />
           } />
 
-          <Route path="/login" element={
-            user ? (
-              <Navigate to={homeFor(user)} replace />
-            ) : <Login />
-          } />
+          {/* Everything else comes from config/navigation.js, which is the
+              same list the sidebar is built from. */}
+          {ROUTES.map(({ path, page, require: required, layout }) => {
+            const Page = PAGES[page];
 
-          {/* Mentor Routes */}
-          <Route path="/mentor/dashboard" element={
-            <ProtectedRoute require="student:read">
-              <MentorDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/student/:id" element={
-            <ProtectedRoute require="student:read">
-              <StudentDetail />
-            </ProtectedRoute>
-          } />
+            if (layout === 'public') {
+              // /login is the one public route that should not be shown to
+              // somebody who is already signed in.
+              const element = path === '/login' && user
+                ? <Navigate to={homeFor(user)} replace />
+                : <Page />;
 
-          <Route path="/marks/entry" element={
-            <ProtectedRoute require="student:read">
-              <MarksEntry />
-            </ProtectedRoute>
-          } />
+              return <Route key={path} path={path} element={element} />;
+            }
 
-          <Route path="/attendance/entry" element={
-            <ProtectedRoute require="student:read">
-              <AttendanceEntry />
-            </ProtectedRoute>
-          } />
+            return (
+              <Route
+                key={path}
+                path={path}
+                element={<ProtectedRoute require={required}><Page /></ProtectedRoute>}
+              />
+            );
+          })}
 
-          {/* Where Google returns the browser after sign-in. */}
-          <Route path="/auth/callback" element={<AuthCallback />} />
-
-          {/* Reached from an email link, so it must not require a session. */}
-          <Route path="/notifications/unsubscribe" element={<UnsubscribePage />} />
-
-          <Route path="/settings" element={
-            <ProtectedRoute require="student:read">
-              <SettingsPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/privacy" element={
-            <ProtectedRoute require="student:read">
-              <PrivacyPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/changelog" element={
-            <ProtectedRoute require="student:read">
-              <ChangelogPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/setup" element={
-            <ProtectedRoute require="department:manage">
-              <SetupWizard />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/batches" element={
-            <ProtectedRoute require="batch:promote">
-              <BatchesPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/reports" element={
-            <ProtectedRoute require="student:read">
-              <ReportsPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/import" element={
-            <ProtectedRoute require="student:read">
-              <ImportPage />
-            </ProtectedRoute>
-          } />
-
-          {/* Admin/HOD Routes */}
-          <Route path="/hod/dashboard" element={
-            <ProtectedRoute require="analytics:read">
-              <HODDashboard />
-            </ProtectedRoute>
-          } />
-
-          <Route path="*" element={
-            user ? (
-              <Navigate to={homeFor(user)} replace />
-            ) : <Navigate to="/" replace />
-          } />
+          {/* Was a silent redirect to the dashboard, which is precisely why
+              six dead nav links went unnoticed for so long: a mistyped or
+              stale URL looked exactly like a working one. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

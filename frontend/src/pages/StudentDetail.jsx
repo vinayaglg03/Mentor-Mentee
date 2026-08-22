@@ -509,7 +509,7 @@ const StudentDetail = () => {
 
                   <div className="card mb-4">
                     <div className="card-header">
-                      <h3><AlertCircle size={18} /> Intelligence Alerts</h3>
+                      <h3><AlertCircle size={18} /> Alerts</h3>
                     </div>
                     <div className="list-content">
                       {selectedRecord.alerts?.map(alert => (

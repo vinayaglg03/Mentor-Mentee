@@ -185,7 +185,7 @@ const HODDashboard = () => {
       <div className="card mt-4" style={{ padding: 0 }}>
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
-            <h3>Institutional Student Registry</h3>
+            <h3>Students in your department</h3>
             <div className="search-box" style={{ width: '250px', background: 'var(--surface-sunken)', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <Search size={16} className="text-muted" />
               <input type="text" placeholder="Search USN/Name..." style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -233,7 +233,7 @@ const HODDashboard = () => {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${s.id}`); }} title="View Longitudinal Profile">
+                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${s.id}`); }} title="Open student">
                             <Eye size={18} />
                           </button>
                           <button className="btn-icon" onClick={(e) => { e.stopPropagation(); toggleRow(s.id); }} title="Toggle Logs">
@@ -316,16 +316,16 @@ const HODDashboard = () => {
             <TrendingUp size={24} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.85rem' }}>HOD Intelligence Terminal</h1>
-            <p className="text-muted">Institutional oversight and longitudinal performance tracking</p>
+            <h1>Department dashboard</h1>
+            <p className="text-muted">Marks, attendance and alerts across your department</p>
           </div>
         </div>
       </div>
 
       <div className="tabs mt-4" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)' }}>
          <button className={`btn ${activeTab==='overview'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='overview' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('overview')}>Overview</button>
-         <button className={`btn ${activeTab==='students'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='students' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('students')}>Institutional Registry</button>
-         <button className={`btn ${activeTab==='mentors'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='mentors' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('mentors')}>Mentor Registry</button>
+         <button className={`btn ${activeTab==='students'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='students' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('students')}>Students</button>
+         <button className={`btn ${activeTab==='mentors'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='mentors' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('mentors')}>Mentors</button>
       </div>
 
       {loading ? (

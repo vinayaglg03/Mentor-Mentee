@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "audit:contrast": "node scripts/contrast-audit.mjs",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "^3.2.7"
   }
 }

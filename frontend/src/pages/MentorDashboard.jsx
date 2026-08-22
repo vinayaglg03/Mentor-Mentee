@@ -231,17 +231,17 @@ const MentorDashboard = () => {
             <Users size={24} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.85rem', margin: 0 }}>Academic Mentor Terminal</h1>
-            <p className="text-muted">Personalized longitudinal tracking for your assigned mentees</p>
+            <h1 style={{ margin: 0 }}>My mentees</h1>
+            <p className="text-muted">The students assigned to you, and what needs doing</p>
           </div>
         </div>
         <div className="header-stats" style={{ display: 'flex', gap: '2rem' }}>
           <div className="header-stat">
-            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Total Mentees</label>
+            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Mentees</label>
             <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-text)' }}>{(students || []).length}</span>
           </div>
           <div className="header-stat">
-            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Active Alerts</label>
+            <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Alerts this semester</label>
             <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--danger)' }}>{(students || []).filter(s => s?.semesterRecords?.[0]?.alerts?.length > 0).length}</span>
           </div>
         </div>
@@ -256,13 +256,13 @@ const MentorDashboard = () => {
 
       <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button className="btn btn-primary" onClick={() => { setEditingStudent(null); setNewStudent({ name: '', rollNumber: '', department: '', currentYear: '1', currentSemester: '1', currentAcademicYear: new Date().getFullYear(), enrollmentYear: new Date().getFullYear(), email: '' }); setShowStudentModal(true); }}>
-          <Plus size={18} /> New Student
+          <Plus size={18} /> Add student
         </button>
         <button className="btn btn-outline" onClick={() => setShowSubjectModal(true)}>
-          <BookOpen size={18} /> Define Subject
+          <BookOpen size={18} /> Add subject
         </button>
         <button className="btn btn-outline" onClick={() => { fetchUnassigned(); setShowAssignModal(true); }}>
-          <PlusCircle size={18} /> Manage Assignments
+          <PlusCircle size={18} /> Assign mentees
         </button>
       </div>
 
@@ -302,7 +302,7 @@ const MentorDashboard = () => {
       {/* Alerts Panel */}
       <div className="card mt-4" hidden={tab !== 'all'}>
         <div className="card-header flex-between">
-          <h3>Current Alerts <span className="badge" style={{ background: 'var(--danger)', color: 'var(--text-on-accent)' }}>{activeAlerts.length}</span></h3>
+          <h3>Alerts this semester <span className="badge" style={{ background: 'var(--danger)', color: 'var(--text-on-accent)' }}>{activeAlerts.length}</span></h3>
         </div>
         <div className="card-body">
           {(activeAlerts || [])?.length > 0 ? (
@@ -435,7 +435,7 @@ const MentorDashboard = () => {
                         </td>
                         <td data-label="Actions">
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${student.id}`); }} title="View Longitudinal Profile">
+                            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${student.id}`); }} title="Open student">
                               <Eye size={18} />
                             </button>
                             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); toggleRow(student.id); }} title="Toggle Logs">
@@ -576,7 +576,7 @@ const MentorDashboard = () => {
         <div className="modal">
           <div className="modal-content card" style={{ maxWidth: '600px' }}>
             <div className="flex-between mb-4 border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-              <h3>{editingStudent ? 'Edit Student' : 'Add New Student'}</h3>
+              <h3>{editingStudent ? 'Edit student' : 'Add student'}</h3>
               <button className="btn-icon" onClick={() => setShowStudentModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '0 1.5rem 1.5rem' }}>

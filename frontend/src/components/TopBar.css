@@ -59,17 +59,6 @@
   color: var(--accent-text);
 }
 
-.icon-btn .dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 8px;
-  height: 8px;
-  background: var(--danger);
-  border-radius: 50%;
-  border: 2px solid var(--surface-raised);
-}
-
 .topbar-user {
   display: flex;
   align-items: center;

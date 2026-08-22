@@ -46,6 +46,29 @@
   margin-bottom: 0.5rem;
 }
 
+.sem-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sem-label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.year-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-link.active .sem-label,
+.timeline-link.active .year-label {
+  color: var(--accent-text);
+}
+
 .timeline-link:hover {
   background: var(--surface-sunken);
 }

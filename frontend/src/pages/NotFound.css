@@ -1,0 +1,51 @@
+.not-found {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--surface);
+}
+
+.not-found-card {
+  max-width: 34rem;
+  text-align: center;
+}
+
+.not-found-icon {
+  color: var(--accent-text);
+  margin-bottom: var(--space-4);
+}
+
+.not-found-card h1 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-3);
+}
+
+.not-found-card code {
+  font-family: var(--font-mono);
+  background: var(--surface-sunken);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  word-break: break-all;
+}
+
+.not-found-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: var(--space-6) 0 var(--space-4);
+}
+
+.not-found-help {
+  font-size: var(--text-sm);
+}
+
+/* The card lifts on hover everywhere else in the app; here it is the only
+   thing on the page and the movement is just noise. */
+.not-found-card:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+}

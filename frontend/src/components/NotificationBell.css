@@ -1,0 +1,121 @@
+.notification-bell {
+  position: relative;
+  display: inline-flex;
+}
+
+.bell-count {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--accent-solid);
+  color: var(--accent-fg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.bell-count.is-high {
+  background: var(--danger);
+  color: var(--text-on-accent);
+}
+
+.bell-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 200;
+  padding: var(--space-4);
+  box-shadow: var(--shadow-floating);
+}
+
+/* This one is a menu, not a card in a grid: it should not lift on hover. */
+.bell-panel:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: var(--shadow-floating);
+}
+
+.bell-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.bell-panel-header h2 {
+  font-size: var(--text-base);
+}
+
+.bell-empty {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding: var(--space-2) 0;
+}
+
+.bell-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.bell-list button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem var(--space-2);
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.bell-list button:hover {
+  background: var(--surface-sunken);
+}
+
+.bell-severity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bell-severity.is-high { color: var(--danger-fg); }
+.bell-severity.is-medium { color: var(--warning-fg); }
+.bell-severity.is-low { color: var(--text-secondary); }
+
+.bell-student {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.bell-message {
+  grid-column: 1 / -1;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-ui);
+}
+
+.bell-more {
+  font-size: var(--text-xs);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-2);
+}

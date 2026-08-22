@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent, assertCanAccessSemesterRecord, assertMentorHasCapacity } from '../lib/access.js';
+import { attendancePercent } from '../lib/scoring.js';
 
 export const getMentors = async (req, res, next) => {
   try {
@@ -27,6 +28,7 @@ export const getAssignedStudents = async (req, res, next) => {
           orderBy: { semester: 'desc' },
           include: { 
             alerts: { where: { resolved: false } },
+            attendance: { select: { classesHeld: true, classesAttended: true } },
             progressLogs: {
               orderBy: { date: 'desc' },
               include: { mentor: { select: { name: true } } }
@@ -35,7 +37,8 @@ export const getAssignedStudents = async (req, res, next) => {
         }
       }
     });
-    res.json(students);
+
+    res.json(students.map(withAttendancePercent));
   } catch (error) {
     next(error);
   }
@@ -54,6 +57,22 @@ export const getUnassignedStudents = async (req, res, next) => {
     next(error);
   }
 };
+
+// Adds a semester-level attendance percentage alongside the raw rows, so the
+// dashboards do not each have to work it out.
+const withAttendancePercent = (student) => ({
+  ...student,
+  semesterRecords: student.semesterRecords.map(record => {
+    const rows = record.attendance || [];
+    const classesHeld = rows.reduce((sum, row) => sum + row.classesHeld, 0);
+    const classesAttended = rows.reduce((sum, row) => sum + row.classesAttended, 0);
+
+    return {
+      ...record,
+      attendancePercent: attendancePercent({ classesHeld, classesAttended }),
+    };
+  }),
+});
 
 export const addProgressLog = async (req, res, next) => {
   try {

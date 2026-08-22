@@ -8,6 +8,10 @@ import Login from './pages/Login';
 import MentorDashboard from './pages/MentorDashboard';
 import HODDashboard from './pages/HODDashboard';
 import StudentDetail from './pages/StudentDetail';
+import ImportPage from './pages/ImportPage';
+import MarksEntry from './pages/MarksEntry';
+import AttendanceEntry from './pages/AttendanceEntry';
+import ReportsPage from './pages/ReportsPage';
 
 import LandingPage from './pages/LandingPage';
 
@@ -57,6 +61,30 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/marks/entry" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <MarksEntry />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/attendance/entry" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <AttendanceEntry />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <ReportsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/import" element={
+          <ProtectedRoute allowedRoles={['MENTOR', 'ADMIN']}>
+            <ImportPage />
+          </ProtectedRoute>
+        } />
+
         {/* Admin/HOD Routes */}
         <Route path="/hod/dashboard" element={
           <ProtectedRoute allowedRoles={['ADMIN']}>

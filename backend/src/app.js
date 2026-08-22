@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { ZodError } from 'zod';
+import { MulterError } from 'multer';
 import config from './config.js';
 import logger from './logger.js';
 import authRoutes from './routes/auth.js';
@@ -14,6 +15,9 @@ import alertRoutes from './routes/alerts.js';
 import subjectRoutes from './routes/subjects.js';
 import hodRoutes from './routes/hod.js';
 import adminRoutes from './routes/admin.js';
+import importRoutes from './routes/import.js';
+import attendanceRoutes from './routes/attendance.js';
+import reportRoutes from './routes/reports.js';
 
 const app = express();
 
@@ -49,6 +53,9 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/import', importRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
@@ -58,6 +65,13 @@ app.get('/api/health', (req, res) => {
 // anything else is logged server-side and reported to the client as a generic
 // 500 so that database internals never reach the browser.
 app.use((err, req, res, next) => {
+  if (err instanceof MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'That file is larger than the 10 MB limit.'
+      : 'The file upload could not be read.';
+    return res.status(400).json({ error: message });
+  }
+
   if (err instanceof ZodError) {
     return res.status(400).json({
       error: 'Validation failed',

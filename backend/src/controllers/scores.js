@@ -1,89 +1,51 @@
 import prisma from '../prismaClient.js';
 import { assertCanAccessStudent } from '../lib/access.js';
+import { validateMarks, saveScore } from '../lib/scoring.js';
+import { updateGpaForSemesterRecords } from '../lib/gpa.js';
+
+// Finds the semester record a set of marks belongs to, creating it on first use.
+const resolveSemesterRecord = async (client, { studentId, semester, academicYear }) => {
+  const existing = await client.semesterRecord.findUnique({
+    where: { studentId_semester_academicYear: { studentId, semester, academicYear } },
+  });
+
+  if (existing) return existing;
+
+  return client.semesterRecord.create({
+    data: { studentId, semester, academicYear },
+  });
+};
 
 export const submitScore = async (req, res, next) => {
   try {
     const { studentId, subjectId, test1, test2, assignment, exam, academicYear, semester } = req.body;
 
     await assertCanAccessStudent(req.user, studentId);
-    
-    // 1. Find or Create SemesterRecord
+
     const sem = Number(semester);
     const year = Number(academicYear);
 
-    let semesterRecord = await prisma.semesterRecord.findUnique({
-      where: { 
-        studentId_semester_academicYear: { studentId, semester: sem, academicYear: year } 
-      }
-    });
-
-    if (!semesterRecord) {
-      semesterRecord = await prisma.semesterRecord.create({
-        data: { studentId, semester: sem, academicYear: year }
-      });
+    const problems = validateMarks({ semester: sem, test1, test2, assignment, exam });
+    if (problems.length > 0) {
+      return res.status(400).json({ error: problems[0] });
     }
 
-    // 2. Validation & Calculations
-    const t1 = Number(test1) || 0;
-    const t2 = Number(test2) || 0;
-    const assign = Number(assignment) || 0;
-    const examScore = exam ? Number(exam) : null;
+    const semesterRecord = await resolveSemesterRecord(prisma, { studentId, semester: sem, academicYear: year });
 
-    let internalTotal = 0;
-    
-    if (sem === 1 || sem === 2) {
-      // SEMESTER 1-2: (CIE1(50) + CIE2(50)) / 2 = 50
-      if (t1 > 50 || t2 > 50) {
-        return res.status(400).json({ error: 'For Semester 1-2, CIE scores must be out of 50.' });
-      }
-      internalTotal = (t1 + t2) / 2;
-    } else {
-      // SEMESTER 3-8: ((CIE1(25) + CIE2(25)) / 2) + Assignment(25) = 50
-      if (t1 > 25 || t2 > 25 || assign > 25) {
-        return res.status(400).json({ error: 'For Semester 3+, CIE and Assignment must be out of 25.' });
-      }
-      internalTotal = ((t1 + t2) / 2) + assign;
-    }
-
-    if (examScore !== null && examScore > 50) {
-      return res.status(400).json({ error: 'External exam score must be out of 50.' });
-    }
-
-    // External is entered DIRECTLY out of 50
-    const externalFinal = examScore;
-    
-    // Final Total out of 100
-    const finalScore = externalFinal !== null ? internalTotal + externalFinal : null;
-
-    const score = await prisma.score.upsert({
-      where: {
-        semesterRecordId_subjectId: { 
-          semesterRecordId: semesterRecord.id, 
-          subjectId
-        }
-      },
-      update: {
-        test1: t1,
-        test2: t2,
-        assignment: assign,
-        internalTotal: internalTotal,
-        exam: examScore,
-        finalScore,
-      },
-      create: {
+    const score = await prisma.$transaction(async (tx) => {
+      const saved = await saveScore(tx, {
         semesterRecordId: semesterRecord.id,
+        semester: sem,
         subjectId,
-        test1: t1,
-        test2: t2,
-        assignment: assign,
-        internalTotal: internalTotal,
-        exam: examScore,
-        finalScore,
-      }
-    });
+        test1,
+        test2,
+        assignment,
+        exam,
+      });
 
-    // --- AUTO ALERTS GENERATION ---
-    await generateAlerts(semesterRecord.id, score, { semester: sem, test1: t1, test2: t2, assignment: assign, external: externalFinal });
+      await updateGpaForSemesterRecords(tx, [semesterRecord.id]);
+      return saved;
+    });
 
     res.json(score);
   } catch (error) {
@@ -91,51 +53,71 @@ export const submitScore = async (req, res, next) => {
   }
 };
 
-// `semester` lives on SemesterRecord, not on Score, so it has to be passed in.
-const generateAlerts = async (semesterRecordId, scoreResult, params) => {
-  const { semester, test1, test2, assignment, external } = params;
-  const alertsToCreate = [];
+// Class-wide entry: one subject, many students, applied atomically.
+export const submitScoresBulk = async (req, res, next) => {
+  try {
+    const { subjectId, semester, academicYear, rows } = req.body;
 
-  if (external !== null && external < 18) {
-    alertsToCreate.push({ type: 'FAIL', severity: 'HIGH', message: `External score (${external}) in semester ${semester} is below 18.` });
-  }
-  
-  if (scoreResult.finalScore !== null && scoreResult.finalScore < 40) {
-    alertsToCreate.push({ type: 'AT_RISK', severity: 'HIGH', message: `Final score (${scoreResult.finalScore}) in semester ${semester} is below 40.` });
-  }
+    const sem = Number(semester);
+    const year = Number(academicYear);
 
-  if (scoreResult.internalTotal !== null && scoreResult.internalTotal < 20) {
-    alertsToCreate.push({ type: 'WEAK', severity: 'MEDIUM', message: `Internal total (${scoreResult.internalTotal}) in semester ${semester} is below 20.` });
-  }
-
-  if (Math.abs(test1 - test2) > 10) {
-    alertsToCreate.push({ type: 'INCONSISTENT', severity: 'MEDIUM', message: `High variation between Test 1 (${test1}) and Test 2 (${test2}).` });
-  }
-
-  if (assignment < 10) {
-    alertsToCreate.push({ type: 'LOW_ENGAGEMENT', severity: 'LOW', message: `Low assignment score (${assignment}) suggests low engagement.` });
-  }
-
-  for (const newAlert of alertsToCreate) {
-    const existing = await prisma.alert.findFirst({
-      where: {
-        semesterRecordId,
-        type: newAlert.type,
-        resolved: false,
-        message: newAlert.message 
-      }
-    });
-
-    if (!existing) {
-      await prisma.alert.create({
-        data: {
-          semesterRecordId,
-          type: newAlert.type,
-          severity: newAlert.severity,
-          message: newAlert.message,
-        }
-      });
+    const studentIds = [...new Set(rows.map(row => row.studentId))];
+    for (const studentId of studentIds) {
+      await assertCanAccessStudent(req.user, studentId);
     }
+
+    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+    if (!subject) {
+      return res.status(400).json({ error: 'Subject not found.' });
+    }
+
+    // Reject the whole batch if any row is out of range, so a save either
+    // lands completely or not at all.
+    const invalid = rows
+      .map((row, index) => ({ index, row, problems: validateMarks({ semester: sem, ...row }) }))
+      .filter(entry => entry.problems.length > 0)
+      .map(entry => ({ studentId: entry.row.studentId, index: entry.index, message: entry.problems[0] }));
+
+    if (invalid.length > 0) {
+      return res.status(400).json({ error: 'Some rows are out of range.', details: invalid });
+    }
+
+    const saved = await prisma.$transaction(async (tx) => {
+      const results = [];
+      const touchedRecords = new Set();
+
+      for (const row of rows) {
+        const semesterRecord = await resolveSemesterRecord(tx, {
+          studentId: row.studentId,
+          semester: sem,
+          academicYear: year,
+        });
+
+        const score = await saveScore(tx, {
+          semesterRecordId: semesterRecord.id,
+          semester: sem,
+          subjectId,
+          test1: row.test1,
+          test2: row.test2,
+          assignment: row.assignment,
+          exam: row.exam,
+        });
+
+        results.push({ studentId: row.studentId, scoreId: score.id, finalScore: score.finalScore });
+        touchedRecords.add(semesterRecord.id);
+      }
+
+      // One pass at the end rather than per row: a class of 60 shares very
+      // few semester records between them, but a student never gets
+      // recomputed twice in the same save.
+      await updateGpaForSemesterRecords(tx, [...touchedRecords]);
+
+      return results;
+    }, { timeout: 30000, maxWait: 10000 });
+
+    res.json({ saved: saved.length, results: saved });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -150,6 +132,61 @@ export const getStudentScores = async (req, res, next) => {
       include: { subject: true, semesterRecord: true }
     });
     res.json(scores);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Every student in a department/semester with their marks for one subject,
+// which is what the class-wide entry grid renders.
+export const getClassScores = async (req, res, next) => {
+  try {
+    const { department, semester, academicYear, subjectId } = req.query;
+
+    const sem = Number(semester);
+    const year = Number(academicYear);
+
+    const students = await prisma.student.findMany({
+      where: {
+        status: 'ACTIVE',
+        department,
+        currentSemester: sem,
+        ...(req.user.role === 'ADMIN' ? {} : { mentorId: req.user.id }),
+      },
+      orderBy: { rollNumber: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        rollNumber: true,
+        semesterRecords: {
+          where: { semester: sem, academicYear: year },
+          select: {
+            id: true,
+            scores: {
+              where: { subjectId },
+              select: { test1: true, test2: true, assignment: true, exam: true, internalTotal: true, finalScore: true },
+            },
+          },
+        },
+      },
+    });
+
+    const rows = students.map(student => {
+      const score = student.semesterRecords[0]?.scores[0] || null;
+      return {
+        studentId: student.id,
+        name: student.name,
+        rollNumber: student.rollNumber,
+        test1: score?.test1 ?? '',
+        test2: score?.test2 ?? '',
+        assignment: score?.assignment ?? '',
+        exam: score?.exam ?? '',
+        internalTotal: score?.internalTotal ?? null,
+        finalScore: score?.finalScore ?? null,
+      };
+    });
+
+    res.json({ rows });
   } catch (error) {
     next(error);
   }

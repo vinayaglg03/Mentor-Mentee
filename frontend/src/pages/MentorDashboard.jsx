@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
-import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare } from 'lucide-react';
+import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSquare, Bell } from 'lucide-react';
 import AlertItem from '../components/AlertItem';
 import { can } from '../lib/permissions';
+import EmptyState from '../components/EmptyState';
 import './MarksEntry.css';
 
 const LOG_TYPES = [
@@ -261,7 +262,12 @@ const MentorDashboard = () => {
               />
             ))
           ) : (
-            <p className="text-muted" style={{ fontSize: '14px' }}>All students are on track in their current semester.</p>
+            <EmptyState
+              compact
+              icon={Bell}
+              title="No open alerts"
+              description="Alerts appear here when marks or attendance fall below the thresholds. Nothing needs your attention right now."
+            />
           )}
         </div>
       </div>
@@ -484,8 +490,23 @@ const MentorDashboard = () => {
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                        No mentees found.
+                      <td colSpan="7" style={{ padding: 0 }}>
+                        {searchTerm ? (
+                          <EmptyState
+                            compact
+                            icon={Search}
+                            title={`No mentee matches "${searchTerm}"`}
+                            description="Try a roll number or part of a name."
+                          />
+                        ) : (
+                          <EmptyState
+                            icon={Users}
+                            title="No mentees yet"
+                            description="Students appear here once they are assigned to you. You can claim unassigned students, or import a list if you look after a whole section."
+                            actionLabel="Import students"
+                            actionTo="/import?type=students"
+                          />
+                        )}
                       </td>
                     </tr>
                   )}
@@ -576,7 +597,18 @@ const MentorDashboard = () => {
                           </td>
                         </tr>
                       ))}
-                      {unassigned.length === 0 && <tr><td colSpan="3" style={{ textAlign: 'center', padding: '1rem' }}>No unassigned students found.</td></tr>}
+                      {unassigned.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ padding: 0 }}>
+                            <EmptyState
+                              compact
+                              icon={Users}
+                              title="Nobody is waiting to be claimed"
+                              description="Every student in your department already has a mentor."
+                            />
+                          </td>
+                        </tr>
+                      )}
                    </tbody>
                  </table>
                </div>

@@ -1,0 +1,34 @@
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--fg-muted);
+}
+
+.empty-state.is-compact { padding: 1.5rem 1rem; }
+
+.empty-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: var(--c-primary);
+  margin-bottom: 0.75rem;
+}
+
+.empty-state.is-compact .empty-state-icon { width: 40px; height: 40px; }
+
+.empty-state h4 {
+  margin: 0 0 0.35rem 0;
+  color: var(--c-darkest, #111827);
+  font-size: 15px;
+}
+
+.empty-state p {
+  margin: 0 auto 1rem auto;
+  max-width: 420px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}

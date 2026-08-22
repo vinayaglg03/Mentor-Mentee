@@ -16,6 +16,7 @@ model User {
   avatarUrl    String?
   role         Role          @default(MENTOR)
   approved     Boolean       @default(false)
+  isDemo       Boolean       @default(false)
   // The department a HOD heads, or the one a coordinator/mentor belongs to.
   departmentId String?
   // How often this person wants a digest, and the token that lets them turn
@@ -50,6 +51,7 @@ model Student {
   enrollmentYear      Int
   email               String?          @unique
   verified            Boolean          @default(false)
+  isDemo              Boolean          @default(false)
   status              StudentStatus    @default(ACTIVE)
   mentorId            String?
   createdAt           DateTime         @default(now())
@@ -76,6 +78,7 @@ model Department {
   code      String   @unique
   name      String
   hodId     String?
+  isDemo    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -152,6 +155,7 @@ model Subject {
   academicYear Int
   semester     Int     @default(1)
   credits      Int     @default(3)
+  isDemo       Boolean @default(false)
 
   departmentRef Department  @relation(fields: [departmentId], references: [id])
   scores        Score[]
@@ -340,6 +344,25 @@ model RefreshToken {
   @@index([userId])
   @@index([family])
   @@index([expiresAt])
+}
+
+// One row, id 'singleton'. What the college is called and when its year
+// runs, set by the first-run wizard rather than by environment variables
+// somebody has to redeploy to change.
+model Institution {
+  id                  String    @id @default("singleton")
+  name                String
+  shortName           String?
+  logoUrl             String?
+  address             String?
+  academicYearStart   DateTime?
+  academicYearEnd     DateTime?
+  currentAcademicYear Int?
+  // Which wizard steps are done, so it can be left and resumed.
+  setupState          Json?
+  setupCompletedAt    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 // The grade scale is data, not code: colleges change it between regulation

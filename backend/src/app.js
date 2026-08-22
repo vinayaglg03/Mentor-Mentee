@@ -21,6 +21,7 @@ import reportRoutes from './routes/reports.js';
 import departmentRoutes from './routes/departments.js';
 import auditRoutes from './routes/audit.js';
 import notificationRoutes from './routes/notifications.js';
+import setupRoutes from './routes/setup.js';
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/setup', setupRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });

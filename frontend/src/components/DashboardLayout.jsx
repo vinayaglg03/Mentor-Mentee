@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { atLeast } from '../lib/permissions';
+import DemoBanner from './DemoBanner';
 
 const DashboardLayout = ({ children }) => {
   const location = useLocation();
@@ -20,6 +21,7 @@ const DashboardLayout = ({ children }) => {
       <div className="main-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar />
         <main className="main-content">
+          <DemoBanner />
           {unscoped && (
             <div className="scope-warning" role="status">
               Your account is not attached to a department yet, so there is nothing to show.

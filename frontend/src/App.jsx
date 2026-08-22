@@ -17,6 +17,7 @@ import BatchesPage from './pages/BatchesPage';
 import SettingsPage from './pages/SettingsPage';
 import UnsubscribePage from './pages/UnsubscribePage';
 import AuthCallback from './pages/AuthCallback';
+import SetupWizard from './pages/SetupWizard';
 
 import LandingPage from './pages/LandingPage';
 
@@ -87,6 +88,12 @@ const AppRoutes = () => {
         <Route path="/settings" element={
           <ProtectedRoute require="student:read">
             <SettingsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/setup" element={
+          <ProtectedRoute require="department:manage">
+            <SetupWizard />
           </ProtectedRoute>
         } />
 

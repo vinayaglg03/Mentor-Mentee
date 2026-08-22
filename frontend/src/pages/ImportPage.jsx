@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import api from '../services/api';
 import { downloadFile } from '../services/download';
@@ -25,12 +26,26 @@ const IMPORT_TYPES = [
     label: 'Attendance',
     blurb: 'Classes held and attended per subject. Below 75% raises a high alert.',
   },
+  {
+    key: 'faculty',
+    label: 'Faculty',
+    blurb: 'Mentors, coordinators and HODs. They sign in with their college Google account.',
+  },
 ];
 
 const ACCEPT = '.xlsx,.csv';
 
 const ImportPage = () => {
-  const [type, setType] = useState('students');
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const returnTo = params.get('return');
+
+  // The setup wizard opens this page on a particular type and expects the
+  // user back afterwards.
+  const [type, setType] = useState(() => {
+    const requested = params.get('type');
+    return IMPORT_TYPES.some(option => option.key === requested) ? requested : 'students';
+  });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
@@ -129,6 +144,11 @@ const ImportPage = () => {
   return (
     <div className="import-view">
       <header className="page-header import-header">
+        {returnTo && (
+          <button className="btn btn-link" type="button" onClick={() => navigate(returnTo)}>
+            ← Back to setup
+          </button>
+        )}
         <div>
           <h1>Bulk import</h1>
           <p className="text-muted">
@@ -151,6 +171,11 @@ const ImportPage = () => {
           <span>
             {result.message}: {result.created} created, {result.updated} updated from {result.fileName}.
           </span>
+          {returnTo && (
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => navigate(returnTo)}>
+              Back to setup
+            </button>
+          )}
           <button className="btn-icon" onClick={() => setResult(null)} title="Dismiss"><X size={16} /></button>
         </div>
       )}

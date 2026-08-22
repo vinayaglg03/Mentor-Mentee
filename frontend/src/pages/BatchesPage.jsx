@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { GraduationCap, AlertTriangle, CheckCircle2, X, ArrowRight, History } from 'lucide-react';
 import api from '../services/api';
+import EmptyState from '../components/EmptyState';
 import './ImportPage.css';
 import './MarksEntry.css';
 
@@ -109,7 +110,13 @@ const BatchesPage = () => {
         {loading ? (
           <p className="text-muted marks-empty">Loading batches…</p>
         ) : batches.length === 0 ? (
-          <p className="text-muted marks-empty">No batches yet. They are created as students are added.</p>
+          <EmptyState
+            icon={GraduationCap}
+            title="No batches yet"
+            description="A batch is one intake of students, created automatically from their admission year when you import them."
+            actionLabel="Import students"
+            actionTo="/import?type=students"
+          />
         ) : (
           <div className="table-responsive">
             <table className="data-table">

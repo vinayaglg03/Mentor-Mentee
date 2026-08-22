@@ -14,6 +14,7 @@
     "report:departments": "node src/jobs/departmentReport.js",
     "job:prune-audit": "node src/jobs/pruneAudit.js",
     "job:digest": "node src/jobs/digestJobs.js",
+    "seed:demo": "node src/jobs/seedDemo.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

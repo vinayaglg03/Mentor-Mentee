@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Save, AlertTriangle, CheckCircle2, X, CalendarCheck } from 'lucide-react';
 import api from '../services/api';
+import EmptyState from '../components/EmptyState';
 import './MarksEntry.css';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -333,7 +334,13 @@ const AttendanceEntry = () => {
           </div>
 
           {rows.length === 0 ? (
-            <p className="text-muted marks-empty">No students match that department and semester.</p>
+            <EmptyState
+              icon={CalendarCheck}
+              title="No students in that class"
+              description="Nobody is enrolled in this department and semester yet, or none of them are yours."
+              actionLabel="Import students"
+              actionTo="/import?type=students"
+            />
           ) : (
             <div className="table-responsive marks-table-wrap">
               <table className="data-table marks-table">

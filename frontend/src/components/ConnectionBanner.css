@@ -1,0 +1,21 @@
+.connection-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 1rem;
+}
+
+.connection-banner.is-offline {
+  background: rgba(100, 116, 139, 0.14);
+  color: #334155;
+  border-left: 4px solid #64748b;
+}
+
+.connection-banner.is-syncing {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--c-primary-dark);
+  border-left: 4px solid var(--c-primary);
+}

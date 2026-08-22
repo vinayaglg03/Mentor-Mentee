@@ -32,10 +32,10 @@ const AttentionPanel = ({ data, loading, onOpenStudent }) => {
   return (
     <div className="attention-grid">
       <section className="attention-group" aria-labelledby="attention-risk">
-        <h3 id="attention-risk">
+        <h2 id="attention-risk">
           <AlertTriangle size={16} aria-hidden="true" /> High alerts
           <span className="attention-count" aria-live="polite">{data.atRisk.length}</span>
-        </h3>
+        </h2>
 
         {data.atRisk.length === 0 ? (
           <p className="attention-none">Nobody is carrying a high alert.</p>
@@ -63,10 +63,10 @@ const AttentionPanel = ({ data, loading, onOpenStudent }) => {
       </section>
 
       <section className="attention-group" aria-labelledby="attention-quiet">
-        <h3 id="attention-quiet">
+        <h2 id="attention-quiet">
           <Clock size={16} aria-hidden="true" /> No contact in {data.quietDays}+ days
           <span className="attention-count" aria-live="polite">{data.quiet.length}</span>
-        </h3>
+        </h2>
 
         {data.quiet.length === 0 ? (
           <p className="attention-none">Everybody has been spoken to recently.</p>
@@ -89,10 +89,10 @@ const AttentionPanel = ({ data, loading, onOpenStudent }) => {
       </section>
 
       <section className="attention-group" aria-labelledby="attention-followups">
-        <h3 id="attention-followups">
+        <h2 id="attention-followups">
           <CalendarCheck size={16} aria-hidden="true" /> Follow-ups due
           <span className="attention-count" aria-live="polite">{data.followUps.length}</span>
-        </h3>
+        </h2>
 
         {data.followUps.length === 0 ? (
           <p className="attention-none">Nothing due this week.</p>

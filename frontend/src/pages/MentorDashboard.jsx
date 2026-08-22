@@ -399,7 +399,7 @@ const MentorDashboard = () => {
             <SkeletonTable rows={6} columns={6} label="Loading your mentees" />
           ) : (
             <div className="table-responsive">
-              <table className="data-table">
+              <table className="data-table table-cards">
                 <thead>
                   <tr>
                     <th>Student Identifier</th>
@@ -415,16 +415,16 @@ const MentorDashboard = () => {
                   {(filteredStudents || [])?.map(student => (
                     <React.Fragment key={student.id}>
                       <tr onClick={() => toggleRow(student.id)} style={{ cursor: 'pointer' }}>
-                        <td><strong>{student.rollNumber}</strong></td>
-                        <td>{student.name}</td>
-                        <td>{student.department}</td>
-                        <td>Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
-                        <td className={attendanceClass(student.semesterRecords?.[0]?.attendancePercent)}>
+                        <td data-label="Roll number"><strong>{student.rollNumber}</strong></td>
+                        <td data-label="Name">{student.name}</td>
+                        <td data-label="Department">{student.department}</td>
+                        <td data-label="Semester">Sem {student.semesterRecords?.[0]?.semester || student.currentSemester}, Year {student.currentYear}</td>
+                        <td data-label="Attendance" className={attendanceClass(student.semesterRecords?.[0]?.attendancePercent)}>
                           {student.semesterRecords?.[0]?.attendancePercent == null
                             ? <span className="text-muted">—</span>
                             : `${student.semesterRecords[0].attendancePercent}%`}
                         </td>
-                        <td>
+                        <td data-label="Alerts">
                           {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
                             <span className="alert-pill alert-high">
                               {student.semesterRecords[0].alerts.length} Active
@@ -433,7 +433,7 @@ const MentorDashboard = () => {
                             <span className="alert-pill alert-low">Clear</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${student.id}`); }} title="View Longitudinal Profile">
                               <Eye size={18} />

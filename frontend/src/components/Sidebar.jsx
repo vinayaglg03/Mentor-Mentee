@@ -77,7 +77,7 @@ const Sidebar = () => {
             <span className="role">{user?.role}</span>
           </div>
         </div>
-        <button onClick={handleLogout} className="logout-btn">
+        <button onClick={handleLogout} className="logout-btn" type="button" aria-label="Sign out">
           <LogOut size={18} />
           <span>Logout</span>
         </button>

@@ -14,12 +14,12 @@ const TopBar = () => {
       <GlobalSearch />
       
       <div className="topbar-actions">
-        <button className="icon-btn">
-          <HelpCircle size={20} />
+        <button className="icon-btn" type="button" aria-label="Help">
+          <HelpCircle size={20} aria-hidden="true" />
         </button>
-        <button className="icon-btn">
-          <Bell size={20} />
-          <span className="dot"></span>
+        <button className="icon-btn" type="button" aria-label="Notifications">
+          <Bell size={20} aria-hidden="true" />
+          <span className="dot" aria-hidden="true"></span>
         </button>
         
         <div className="topbar-user">

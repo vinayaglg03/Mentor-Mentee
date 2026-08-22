@@ -37,11 +37,11 @@ const AuthCallback = () => {
   }, [params, login, navigate]);
 
   return (
-    <div className="auth-view">
+    <main className="auth-view">
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <h2>{error ? 'Sign-in failed' : 'Signing you in…'}</h2>
+            <h1>{error ? 'Sign-in failed' : 'Signing you in…'}</h1>
             <p>{error || 'One moment.'}</p>
           </div>
           {error && (
@@ -51,7 +51,7 @@ const AuthCallback = () => {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

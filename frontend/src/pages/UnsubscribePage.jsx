@@ -30,11 +30,11 @@ const UnsubscribePage = () => {
   };
 
   return (
-    <div className="auth-view">
+    <main className="auth-view">
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <h2>AMIS email digest</h2>
+            <h1>AMIS email digest</h1>
             <p>Choose how often you want to hear from AMIS.</p>
           </div>
 
@@ -68,7 +68,7 @@ const UnsubscribePage = () => {
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

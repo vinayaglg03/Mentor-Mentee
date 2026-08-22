@@ -83,11 +83,11 @@ const Login = () => {
 
   if (pendingApproval) {
     return (
-      <div className="auth-view">
+      <main className="auth-view">
         <div className="auth-container">
           <div className="auth-card">
             <div className="auth-header">
-              <h2>Almost there</h2>
+              <h1>Almost there</h1>
               <p>Your account has been created.</p>
             </div>
 
@@ -101,16 +101,16 @@ const Login = () => {
             </button>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="auth-view">
+    <main className="auth-view">
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+            <h1>{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
             <p>
               {options.googleEnabled
                 ? 'Sign in with your college account'
@@ -204,7 +204,7 @@ const Login = () => {
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

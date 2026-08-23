@@ -244,12 +244,19 @@ describe('failures do not take the run down', () => {
 });
 
 describe('the scheduler', () => {
-  it('registers the three jobs and can be turned off', async () => {
+  it('registers every scheduled job and can be turned off', async () => {
     vi.resetModules();
     const { startScheduler, stopScheduler } = await import('../src/jobs/scheduler.js');
 
     const tasks = startScheduler();
-    expect(tasks.map(task => task.name)).toEqual(['daily-digest', 'weekly-digest', 'inactivity-check']);
+    expect(tasks.map(task => task.name)).toEqual([
+      'daily-digest',
+      'weekly-digest',
+      'inactivity-check',
+      // Added with the Settings page: mentors who asked to hear about
+      // high-severity alerts get them batched hourly.
+      'high-severity-alerts',
+    ]);
     stopScheduler();
   });
 });

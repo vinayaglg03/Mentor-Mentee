@@ -119,9 +119,15 @@ export const ThemeProvider = ({ children }) => {
           setDensityState(data.density);
           store(STORAGE.density, data.density);
         }
+        // null is the server saying "no choice made" - which must not be
+        // read as "do not reduce motion", or somebody with the system
+        // setting on would get animation anyway.
         if (typeof data.reduceMotion === 'boolean') {
           setMotionOverride(data.reduceMotion);
           store(STORAGE.motion, data.reduceMotion ? 'reduced' : 'full');
+        } else if (data.reduceMotion === null) {
+          setMotionOverride(null);
+          try { localStorage.removeItem(STORAGE.motion); } catch { /* blocked */ }
         }
       })
       .catch(() => {

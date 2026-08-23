@@ -293,6 +293,66 @@ export const logoutEverywhere = async (req, res, next) => {
   }
 };
 
+// Changing your own password. Only ever your own: the id comes from the
+// session, never from the request.
+export const changePassword = async (req, res, next) => {
+  try {
+    if (!config.auth.passwordLoginEnabled) {
+      return res.status(400).json({
+        error: 'This deployment signs in with Google, so there is no password to change.',
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, password: true },
+    });
+
+    if (!user?.password) {
+      return res.status(400).json({
+        error: 'This account signs in with Google and has no password.',
+      });
+    }
+
+    const matches = await bcrypt.compare(currentPassword, user.password);
+
+    if (!matches) {
+      // Deliberately not "that is not your password" with any more detail
+      // than this: the same wording as a failed sign-in.
+      return res.status(401).json({ error: 'Your current password is not right.' });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: 'The new password is the same as the old one.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: await bcrypt.hash(newPassword, 10) },
+    });
+
+    // A password change is the one moment where signing every other device
+    // out is the point: if somebody else knew the old one, they are out now.
+    const revoked = await revokeAllForUser(user.id);
+    const session = await startSession(res, { id: user.id, role: req.user.role }, {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
+
+    res.json({
+      message: revoked.count > 1
+        ? `Password changed. ${revoked.count - 1} other session(s) were signed out.`
+        : 'Password changed.',
+      token: session.token,
+      expiresInMinutes: session.expiresInMinutes,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const me = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({

@@ -115,6 +115,9 @@ const config = {
     dailyDigestCron: process.env.DAILY_DIGEST_CRON || '30 1 * * *',
     weeklyDigestCron: process.env.WEEKLY_DIGEST_CRON || '0 2 * * 1',
     inactivityCron: process.env.INACTIVITY_CRON || '0 3 * * *',
+    // Batched hourly, for mentors who asked to hear about high-severity
+    // alerts as they happen rather than in the next digest.
+    highSeverityCron: process.env.HIGH_SEVERITY_CRON || '15 * * * *',
   },
   // Printed at the top of every exported report.
   college: {

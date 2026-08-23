@@ -3,6 +3,7 @@ import { Save, AlertTriangle, CheckCircle2, X, CalendarCheck } from 'lucide-reac
 import api from '../services/api';
 import EmptyState from '../components/EmptyState';
 import './MarksEntry.css';
+import { useAcademicFilters } from '../hooks/useAcademicFilters';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const COLUMNS = [
@@ -33,7 +34,9 @@ const percentOf = (row) => {
 };
 
 const AttendanceEntry = () => {
-  const [filters, setFilters] = useState({
+  // Pre-filled from Settings -> Academic defaults, so the three dropdowns are
+  // not chosen again at the start of every session.
+  const [filters, setFilters] = useAcademicFilters({
     department: '',
     semester: '3',
     academicYear: String(CURRENT_YEAR),

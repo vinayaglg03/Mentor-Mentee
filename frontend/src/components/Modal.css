@@ -1,0 +1,125 @@
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: rgb(2 6 23 / 55%);
+  overflow-y: auto;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-floating);
+  /* The dialog never grows past the viewport; the body inside it scrolls. */
+  max-height: calc(100vh - var(--space-6) * 2);
+  min-height: 0;
+}
+
+.modal-sm { max-width: 26rem; }
+.modal-md { max-width: 38rem; }
+.modal-lg { max-width: 48rem; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.modal-body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  /* Without this a flex child refuses to shrink below its content, which is
+     what put the bottom of a long form off the screen. */
+  min-height: 0;
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border);
+  background: var(--surface-sunken);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
+}
+
+/* A short viewport - a laptop at 640px, or a phone in landscape - is where
+   this used to fail. Nothing special is needed now beyond less padding. */
+@media (max-height: 640px) {
+  .modal { padding: var(--space-3); }
+
+  .modal-content { max-height: calc(100vh - var(--space-3) * 2); }
+
+  .modal-header { padding: var(--space-3) var(--space-5); }
+  .modal-body { padding: var(--space-4) var(--space-5); }
+  .modal-actions { padding: var(--space-3) var(--space-5); }
+}
+
+/* On a phone it is a sheet: it comes up from the bottom edge, where a thumb
+   already is. */
+@media (max-width: 767px) {
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+  }
+
+  .modal-actions {
+    border-radius: 0;
+    /* Clear of the home indicator. */
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* A two-column form inside a dialog, collapsing to one on a narrow screen. */
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.modal-form-grid .form-group {
+  margin-bottom: 0;
+}
+
+.field-note {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+@media (max-width: 639px) {
+  .modal-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

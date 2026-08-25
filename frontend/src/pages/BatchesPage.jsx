@@ -4,8 +4,13 @@ import api from '../services/api';
 import EmptyState from '../components/EmptyState';
 import './ImportPage.css';
 import './MarksEntry.css';
+import Modal from '../components/Modal';
+import { useCardLabels } from '../hooks/useCardLabels';
 
 const BatchesPage = () => {
+  // Column names are copied onto the cells so the card layout below
+  // 640px can label each value. See hooks/useCardLabels.js.
+  const cardTable0 = useCardLabels();
   const [batches, setBatches] = useState([]);
   const [plan, setPlan] = useState(null);
   const [history, setHistory] = useState(null);
@@ -119,7 +124,7 @@ const BatchesPage = () => {
           />
         ) : (
           <div className="table-responsive">
-            <table className="data-table">
+            <table ref={cardTable0} className="data-table table-cards">
               <thead>
                 <tr>
                   <th>Department</th>
@@ -157,17 +162,30 @@ const BatchesPage = () => {
       </div>
 
       {plan && (
-        <div className="modal">
-          <div className="modal-content card" style={{ maxWidth: '760px' }}>
-            <div className="flex-between border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-              <h3>
-                {plan.batch.department.code} {plan.batch.admissionYear}:
-                semester {plan.fromSemester} <ArrowRight size={14} style={{ verticalAlign: 'middle' }} /> {plan.toSemester}
-              </h3>
-              <button className="btn-icon" onClick={() => setPlan(null)}>&times;</button>
-            </div>
-
-            <div style={{ padding: '1rem 1.5rem 1.5rem' }}>
+        <Modal
+          size="lg"
+          onClose={() => setPlan(null)}
+          title={
+            <>
+              {plan.batch.department.code} {plan.batch.admissionYear}:
+              semester {plan.fromSemester} <ArrowRight size={14} style={{ verticalAlign: 'middle' }} /> {plan.toSemester}
+            </>
+          }
+          actions={
+            <>
+              <button type="button" className="btn btn-outline" onClick={() => setPlan(null)}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || (plan.summary.promote === 0 && plan.summary.graduate === 0)}
+                onClick={confirmPromotion}
+              >
+                {busy ? 'Applying…' : `Promote ${plan.summary.promote + plan.summary.graduate} student(s)`}
+              </button>
+            </>
+          }
+        >
+            <div>
               <div className="import-summary">
                 <div className="import-stat">
                   <label>Students</label>
@@ -232,30 +250,17 @@ const BatchesPage = () => {
                 </table>
               </div>
 
-              <div className="flex-between" style={{ gap: '1rem', marginTop: '1.25rem' }}>
-                <button type="button" className="btn btn-outline btn-full" onClick={() => setPlan(null)}>Cancel</button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-full"
-                  disabled={busy || (plan.summary.promote === 0 && plan.summary.graduate === 0)}
-                  onClick={confirmPromotion}
-                >
-                  {busy ? 'Applying…' : `Promote ${plan.summary.promote + plan.summary.graduate} student(s)`}
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {history && (
-        <div className="modal">
-          <div className="modal-content card" style={{ maxWidth: '640px' }}>
-            <div className="flex-between border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-              <h3>{history.batch.department.code} {history.batch.admissionYear} — rollover history</h3>
-              <button className="btn-icon" onClick={() => setHistory(null)}>&times;</button>
-            </div>
-            <div style={{ padding: '1rem 1.5rem 1.5rem' }}>
+        <Modal
+          size="md"
+          onClose={() => setHistory(null)}
+          title={`${history.batch.department.code} ${history.batch.admissionYear} — rollover history`}
+        >
+            <div>
               {history.rollovers.length === 0 ? (
                 <p className="text-muted" style={{ fontSize: '14px' }}>This batch has never been promoted.</p>
               ) : (
@@ -285,8 +290,7 @@ const BatchesPage = () => {
                 </table>
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

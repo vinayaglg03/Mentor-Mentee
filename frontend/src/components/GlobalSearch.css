@@ -88,7 +88,7 @@
   gap: 0.5rem;
 }
 
-.global-search-alert { color: var(--danger); font-weight: 600; }
+.global-search-alert { color: var(--danger-fg); font-weight: 600; }
 
 .global-search-empty {
   padding: 0.75rem 0.6rem;
@@ -97,7 +97,69 @@
   cursor: default;
 }
 
-@media (max-width: 640px) {
-  .global-search { min-width: 0; }
+/* The trigger only exists on small screens; above that the field is always
+   there and the button would be a second way to do nothing. */
+.global-search-trigger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.global-search-trigger:hover {
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .global-search {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
   .global-search-hint { display: none; }
+
+  .global-search-trigger { display: inline-flex; }
+
+  /* Collapsed: the input is not rendered visually, and is not tabbable
+     either - reaching a search box you cannot see is worse than not having
+     one. */
+  .global-search:not(.is-expanded) .global-search-input,
+  .global-search:not(.is-expanded) .global-search-icon,
+  .global-search:not(.is-expanded) .global-search-clear {
+    display: none;
+  }
+
+  /* Expanded: it takes the whole bar, over everything else in it. */
+  .global-search.is-expanded {
+    position: absolute;
+    inset: var(--space-2) var(--space-3);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    background: var(--surface-raised);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 0 var(--space-3);
+    box-shadow: var(--shadow-card);
+  }
+
+  .global-search.is-expanded .global-search-trigger { display: none; }
+
+  .global-search.is-expanded .global-search-input {
+    height: 44px;
+    font-size: var(--text-base);
+  }
+
+  .global-search-results {
+    left: 0;
+    right: 0;
+    width: auto;
+  }
 }

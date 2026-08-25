@@ -72,8 +72,9 @@ const ReportsPage = () => {
 
       <div className="card marks-filters">
         <div className="form-group">
-          <label>Department</label>
+          <label htmlFor="reports-department">Department</label>
           <select
+            id="reports-department"
             className="input-control"
             value={filters.department}
             onChange={e => setFilters({ ...filters, department: e.target.value, subjectId: '' })}
@@ -86,8 +87,9 @@ const ReportsPage = () => {
         </div>
 
         <div className="form-group">
-          <label>Semester</label>
+          <label htmlFor="reports-semester">Semester</label>
           <select
+            id="reports-semester"
             className="input-control"
             value={filters.semester}
             onChange={e => setFilters({ ...filters, semester: e.target.value, subjectId: '' })}
@@ -99,8 +101,9 @@ const ReportsPage = () => {
         </div>
 
         <div className="form-group">
-          <label>Academic year</label>
+          <label htmlFor="reports-academic-year">Academic year</label>
           <input
+            id="reports-academic-year"
             type="number"
             className="input-control"
             value={filters.academicYear}
@@ -109,8 +112,9 @@ const ReportsPage = () => {
         </div>
 
         <div className="form-group marks-subject">
-          <label>Subject (marks sheet only)</label>
+          <label htmlFor="reports-subject">Subject (marks sheet only)</label>
           <select
+            id="reports-subject"
             className="input-control"
             value={filters.subjectId}
             onChange={e => setFilters({ ...filters, subjectId: e.target.value })}

@@ -6,10 +6,12 @@ import { Search, Plus, BookOpen, Eye, PlusCircle, Users, ChevronDown, MessageSqu
 import AlertItem from '../components/AlertItem';
 import { can } from '../lib/permissions';
 import EmptyState from '../components/EmptyState';
+import Modal from '../components/Modal';
 import AttentionPanel from '../components/AttentionPanel';
 import { SkeletonTable } from '../components/Skeleton';
 import { useToast } from '../components/useToast';
 import './MarksEntry.css';
+import { useCardLabels } from '../hooks/useCardLabels';
 
 const LOG_TYPES = [
   { value: 'ROUTINE_MEETING', label: 'Routine meeting' },
@@ -38,6 +40,9 @@ const attendanceClass = (percent) => {
 };
 
 const MentorDashboard = () => {
+  // Column names are copied onto the cells so the card layout below
+  // 640px can label each value. See hooks/useCardLabels.js.
+  const cardTable0 = useCardLabels();
   const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [unassigned, setUnassigned] = useState([]);
@@ -343,7 +348,7 @@ const MentorDashboard = () => {
             </p>
           ) : (
             <div className="table-responsive">
-              <table className="data-table">
+              <table ref={cardTable0} className="data-table table-cards sticky-first sticky-head">
                 <thead>
                   <tr>
                     <th>Due</th>
@@ -573,14 +578,12 @@ const MentorDashboard = () => {
 
       {/* Student Modal (Add/Edit) */}
       {showStudentModal && (
-        <div className="modal">
-          <div className="modal-content card" style={{ maxWidth: '600px' }}>
-            <div className="flex-between mb-4 border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-              <h3>{editingStudent ? 'Edit student' : 'Add student'}</h3>
-              <button className="btn-icon" onClick={() => setShowStudentModal(false)}>&times;</button>
-            </div>
-            <div style={{ padding: '0 1.5rem 1.5rem' }}>
-              <form onSubmit={handleStudentSubmit}>
+        <Modal
+          title={editingStudent ? 'Edit student' : 'Add student'}
+          size="md"
+          onClose={() => setShowStudentModal(false)}
+        >
+              <form onSubmit={handleStudentSubmit} id="student-form">
                 <div style={{ display: 'flex', gap: '1rem' }} className="mb-4">
                   <div className="form-group" style={{ flex: 2 }}>
                     <label>Full Name</label>
@@ -619,26 +622,22 @@ const MentorDashboard = () => {
                   <label>Email Address</label>
                   <input type="email" className="input-control" value={newStudent.email} onChange={e => setNewStudent({...newStudent, email: e.target.value})} />
                 </div>
-                <div className="flex-between" style={{ gap: '1rem' }}>
-                  <button type="button" className="btn btn-outline btn-full" onClick={() => setShowStudentModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-full">{editingStudent ? 'Update Student' : 'Create Student'}</button>
+                <div className="modal-actions modal-actions-inline">
+                  <button type="button" className="btn btn-outline" onClick={() => setShowStudentModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary">{editingStudent ? 'Save changes' : 'Add student'}</button>
                 </div>
               </form>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Claim Student Modal */}
       {showAssignModal && (
-        <div className="modal">
-          <div className="modal-content card">
-             <div className="flex-between mb-4 border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-                <h3>Claim Unassigned Student</h3>
-                <button className="btn-icon" onClick={() => setShowAssignModal(false)}>&times;</button>
-             </div>
-             <div style={{ padding: '0 1.5rem 1.5rem' }}>
-               <div className="table-responsive" style={{ maxHeight: '400px' }}>
+        <Modal
+          title="Claim a student"
+          size="md"
+          onClose={() => setShowAssignModal(false)}
+        >
+               <div className="table-responsive">
                  <table className="data-table">
                    <thead><tr><th>Roll No</th><th>Name</th><th>Action</th></tr></thead>
                    <tbody>
@@ -666,20 +665,16 @@ const MentorDashboard = () => {
                    </tbody>
                  </table>
                </div>
-             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Add Subject Modal */}
       {showSubjectModal && (
-        <div className="modal">
-          <div className="modal-content card" style={{ maxWidth: '500px' }}>
-              <div className="flex-between mb-4 border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-                <h3>Add New Subject</h3>
-                <button className="btn-icon" onClick={() => setShowSubjectModal(false)}>&times;</button>
-              </div>
-              <div style={{ padding: '0 1.5rem 1.5rem' }}>
+        <Modal
+          title="Add a subject"
+          size="sm"
+          onClose={() => setShowSubjectModal(false)}
+        >
                 <form onSubmit={handleSubjectSubmit}>
                    <div className="form-group mb-4">
                      <label>Subject Name</label>
@@ -705,14 +700,12 @@ const MentorDashboard = () => {
                        <input type="number" className="input-control" placeholder="1" required value={newSubject.semester} onChange={e => setNewSubject({...newSubject, semester: e.target.value})} />
                      </div>
                    </div>
-                   <div className="flex-between" style={{ gap: '1rem' }}>
-                     <button type="button" className="btn btn-outline btn-full" onClick={() => setShowSubjectModal(false)}>Cancel</button>
-                     <button type="submit" className="btn btn-primary btn-full">Create Subject</button>
+                   <div className="modal-actions modal-actions-inline">
+                     <button type="button" className="btn btn-outline" onClick={() => setShowSubjectModal(false)}>Cancel</button>
+                     <button type="submit" className="btn btn-primary">Add subject</button>
                    </div>
                 </form>
-              </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { LifeBuoy, X } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from './useToast';
+import Modal from './Modal';
 import './ReportProblem.css';
 
 // Faculty who hit a bug with nowhere to report it stop using the tool and
@@ -60,14 +61,7 @@ const ReportProblem = () => {
       </button>
 
       {open && (
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="report-problem-title">
-          <div className="modal-content card report-problem-card">
-            <div className="flex-between border-bottom pb-2" style={{ padding: '1rem 1.5rem' }}>
-              <h3 id="report-problem-title">Report a problem</h3>
-              <button className="btn-icon" onClick={close} aria-label="Close"><X size={18} /></button>
-            </div>
-
-            <div style={{ padding: '1rem 1.5rem 1.5rem' }}>
+        <Modal title="Report a problem" size="sm" onClose={close}>
               {sent ? (
                 <>
                   <p>{sent.message}</p>
@@ -103,9 +97,7 @@ const ReportProblem = () => {
                   </button>
                 </form>
               )}
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

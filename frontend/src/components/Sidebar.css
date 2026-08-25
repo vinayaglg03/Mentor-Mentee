@@ -1,5 +1,8 @@
 .sidebar {
   width: var(--sidebar-width);
+  /* Without this the sidebar is squeezed by whatever is beside it: at 900px
+     the rail was ending up 37px wide. */
+  flex-shrink: 0;
   background: var(--chrome-bg);
   color: var(--chrome-fg);
   display: flex;
@@ -12,7 +15,7 @@
   z-index: 100;
   box-shadow: var(--shadow-floating);
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width var(--duration-slow) var(--ease-out);
 }
 
 .sidebar-header {
@@ -54,7 +57,9 @@
   color: var(--chrome-fg-muted);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: all 0.3s ease;
+  transition:
+    color var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -143,7 +148,10 @@
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
 }
 
 .logout-btn:hover {
@@ -153,88 +161,146 @@
   transform: translateY(-1px);
 }
 
-@media (max-width: 1024px) {
-  .sidebar {
-    width: 80px;
-  }
-  .sidebar h2, .nav-item span, .user-info, .logout-btn span {
-    display: none;
-  }
+/* The wordmark carries a small Devanagari line beneath it, matching the
+   landing page. Hidden in the rail, where there is no room for it. */
+.sidebar-header h2 {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
 }
 
-/* On a phone the sidebar becomes a bottom bar: thumb-reachable, out of the
-   way of the content, and no horizontal space taken from a 390px screen. */
-@media (max-width: 767px) {
+.wordmark-devanagari {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+  -webkit-text-fill-color: var(--chrome-fg-muted);
+}
+
+.sidebar-close {
+  display: none;
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--chrome-fg-muted);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.sidebar-close:hover {
+  color: var(--chrome-fg);
+  background: var(--chrome-hover);
+}
+
+.sidebar-scrim {
+  display: none;
+}
+
+/* --- Rail: 1024px down ------------------------------------------------------
+   Icons only. The label used to be hidden with no replacement, so a collapsed
+   sidebar was nine unlabelled glyphs; each item now carries its label as a
+   tooltip. */
+
+@media (max-width: 1023px) and (min-width: 768px) {
   .sidebar {
-    position: fixed;
-    inset: auto 0 0 0;
-    flex-direction: row;
-    width: auto;
-    height: auto;
-    margin: 0;
-    border-radius: 0;
-    padding: 0.25rem 0.5rem env(safe-area-inset-bottom, 0.25rem);
-    overflow-x: auto;
-    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.18);
+    width: var(--sidebar-width-rail);
+    margin: var(--space-3);
+    height: calc(100vh - var(--space-6));
   }
 
-  .sidebar-header,
-  .sidebar-footer .user-info {
+  .sidebar-header {
+    padding: var(--space-5) 0;
+    justify-content: center;
+  }
+
+  .sidebar-header h2,
+  .nav-item span,
+  .user-info,
+  .logout-btn span {
     display: none;
   }
 
   .nav-menu {
-    display: flex;
-    flex-direction: row;
-    gap: 0.15rem;
-    padding: 0;
-    margin: 0;
-    overflow-x: auto;
-    flex: 1;
-    scrollbar-width: none;
+    padding: var(--space-2);
+    align-items: center;
   }
-
-  .nav-menu::-webkit-scrollbar { display: none; }
 
   .nav-item {
-    flex-direction: column;
-    gap: 0.15rem;
-    padding: 0.5rem 0.6rem;
-    margin: 0;
-    font-size: 10px;
-    text-align: center;
-    min-width: 62px;
-    /* A comfortable tap target rather than a link sized for a mouse. */
-    min-height: 48px;
     justify-content: center;
+    padding: var(--space-3);
+    width: 100%;
   }
-
-  .sidebar h2,
-  .nav-item span,
-  .user-info,
-  .logout-btn span {
-    display: initial;
-  }
-
-  .nav-item span {
-    font-size: 10px;
-    line-height: 1.1;
-  }
-
-  .active-indicator { display: none; }
 
   .sidebar-footer {
-    padding: 0.25rem;
-    border: none;
+    padding: var(--space-3);
+  }
+
+  .profile-card {
+    justify-content: center;
+    padding: var(--space-2);
   }
 
   .logout-btn {
-    flex-direction: column;
-    gap: 0.15rem;
-    font-size: 10px;
-    padding: 0.5rem;
-    min-height: 48px;
+    padding: var(--space-3) 0;
+  }
+}
+
+/* --- Drawer: below 768px ----------------------------------------------------
+   Off-canvas, over the content, opened from the hamburger in the top bar.
+   Previously the container simply switched to column direction, which put a
+   full-width nav block above the page: on a phone you scrolled past every
+   item before reaching what you came for. */
+
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(19rem, 82vw);
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform var(--duration-slow) var(--ease-out);
+    box-shadow: none;
   }
 
-  .logout-btn span { display: none; }
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-floating);
+  }
+
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgb(2 6 23 / 55%);
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  .sidebar-header {
+    padding: var(--space-5);
+  }
+
+  /* Full-size targets: this is the one place the labels are always shown. */
+  .nav-item {
+    min-height: 44px;
+    font-size: var(--text-base);
+  }
+}
+
+/* The drawer slide is motion; somebody who asked for less should get none. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
+
+:root[data-motion="reduced"] .sidebar {
+  transition: none;
 }

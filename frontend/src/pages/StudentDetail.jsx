@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import './StudentDetail.css';
 import './MarksEntry.css';
+import { useCardLabels } from '../hooks/useCardLabels';
+import Modal from '../components/Modal';
 
 
 // Matches the thresholds the alert engine uses.
@@ -26,6 +28,10 @@ const attendanceClass = (percent) => {
 };
 
 const StudentDetail = () => {
+  // Column names are copied onto the cells so the card layout below
+  // 640px can label each value. See hooks/useCardLabels.js.
+  const cardTable0 = useCardLabels();
+  const cardTable1 = useCardLabels();
   const { user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -35,10 +41,7 @@ const StudentDetail = () => {
   const [subjects, setSubjects] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
-  // The achievement modal markup was never added, so the button that calls
-  // setShowAchievementModal opens nothing. Wiring it up is a feature change,
-  // out of scope for this pass.
-  // eslint-disable-next-line no-unused-vars
+  // The button for this used to open nothing: the markup was never written.
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   
   const [selectedSemesterId, setSelectedSemesterId] = useState(null);
@@ -217,7 +220,7 @@ const StudentDetail = () => {
         `mentoring-report-${student?.rollNumber || id}.pdf`
       );
     } catch {
-      alert('Could not produce the report.');
+      toast.error(null, 'Could not produce the report.');
     } finally {
       setDownloadingReport(false);
     }
@@ -248,7 +251,6 @@ const StudentDetail = () => {
     } catch(err) { console.error(err); }
   };
 
-  // eslint-disable-next-line no-unused-vars
   const handleAchievementSubmit = async (e) => {
     e.preventDefault();
     if (!newAchievement.title.trim() || !selectedSemesterId) return;
@@ -279,7 +281,7 @@ const StudentDetail = () => {
       const { data } = await api.get(`/students/${id}`);
       setStudent(data);
     } catch(err) { 
-      alert(err.response?.data?.error || "Failed to save score");
+      toast.error(err, 'Could not save that mark.');
     } finally {
       setSubmitting(false);
     }
@@ -406,7 +408,15 @@ const StudentDetail = () => {
                 No academic data available yet
               </div>
             ) : (
-              <Line data={progressionChartData} options={progressionOptions} />
+              <Line
+                data={progressionChartData}
+                options={progressionOptions}
+                label="SGPA by semester"
+                summary={sortedRecords
+                  .filter(record => record.sgpa != null)
+                  .map(record => `semester ${record.semester}: ${record.sgpa}`)
+                  .join(', ')}
+              />
             )}
           </div>
         </div>
@@ -430,12 +440,16 @@ const StudentDetail = () => {
                       </button>
                     </div>
                     <div style={{ height: '300px' }}>
-                      <Bar data={semesterChartData} options={chartOptions} />
+                      <Bar
+                        data={semesterChartData}
+                        options={chartOptions}
+                        label="Internal and external marks by subject"
+                      />
                     </div>
                   </div>
 
                   <div className="table-container">
-                    <table className="data-table">
+                    <table ref={cardTable0} className="data-table table-cards">
                       <thead>
                         <tr>
                           <th>Subject</th>
@@ -475,7 +489,7 @@ const StudentDetail = () => {
                         </p>
                       ) : (
                         <div className="table-responsive">
-                          <table className="data-table">
+                          <table ref={cardTable1} className="data-table table-cards">
                             <thead>
                               <tr>
                                 <th>Subject</th>
@@ -607,55 +621,168 @@ const StudentDetail = () => {
           )}
         </AnimatePresence>
 
-        {/* MODALS (Modernized styling applied via global card/btn styles) */}
         {showScoreModal && (
-          <div className="modal-overlay glass">
-            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="card modal-content" style={{ maxWidth: '600px', margin: 'auto' }}>
-               <div className="card-header">
-                 <h2>Record Academic Performance</h2>
-               </div>
-               <form onSubmit={handleScoreSubmit}>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="form-group">
-                      <label>Subject</label>
-                      <select className="input-control" required value={newScore.subjectId} onChange={e => setNewScore({...newScore, subjectId: e.target.value})}>
-                        <option value="">Select Subject</option>
-                        {(subjects || []).map(sub => <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Academic Year</label>
-                      <input type="number" className="input-control" required value={newScore.academicYear} onChange={e => setNewScore({...newScore, academicYear: e.target.value})} placeholder="e.g. 2024" />
-                    </div>
-                    <div className="form-group">
-                      <label>Semester</label>
-                      <input type="number" className="input-control" required value={newScore.semester} onChange={e => setNewScore({...newScore, semester: e.target.value})} placeholder="1-8" />
-                    </div>
-                    <div className="form-group">
-                      <label>CIE 1</label>
-                      <input type="number" className="input-control" required value={newScore.test1} onChange={e => setNewScore({...newScore, test1: e.target.value})} />
-                    </div>
-                    <div className="form-group">
-                      <label>CIE 2</label>
-                      <input type="number" className="input-control" required value={newScore.test2} onChange={e => setNewScore({...newScore, test2: e.target.value})} />
-                    </div>
-                    <div className="form-group">
-                      <label>Assignment (3+ only)</label>
-                      <input type="number" className="input-control" value={newScore.assignment} onChange={e => setNewScore({...newScore, assignment: e.target.value})} disabled={newScore.semester <= 2} />
-                    </div>
-                    <div className="form-group">
-                      <label>External (Max 50)</label>
-                      <input type="number" className="input-control" required value={newScore.exam} onChange={e => setNewScore({...newScore, exam: e.target.value})} />
-                    </div>
-                 </div>
-                 <div className="mt-4 flex-between">
-                   <button type="button" className="btn btn-outline" onClick={() => setShowScoreModal(false)}>Cancel</button>
-                   <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Syncing...' : 'Confirm Entry'}</button>
-                 </div>
-               </form>
-            </motion.div>
-          </div>
+          <Modal
+            title="Record a mark"
+            size="lg"
+            onClose={() => setShowScoreModal(false)}
+            actions={(
+              <>
+                <button type="button" className="btn btn-outline" onClick={() => setShowScoreModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" form="score-form" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Saving…' : 'Save mark'}
+                </button>
+              </>
+            )}
+          >
+            <form id="score-form" onSubmit={handleScoreSubmit} className="modal-form-grid">
+              <div className="form-group">
+                <label htmlFor="score-subject">Subject</label>
+                <select
+                  id="score-subject"
+                  className="input-control"
+                  required
+                  value={newScore.subjectId}
+                  onChange={e => setNewScore({ ...newScore, subjectId: e.target.value })}
+                >
+                  <option value="">Choose a subject</option>
+                  {(subjects || []).map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-year">Academic year</label>
+                <input
+                  id="score-year"
+                  type="number"
+                  className="input-control"
+                  required
+                  value={newScore.academicYear}
+                  onChange={e => setNewScore({ ...newScore, academicYear: e.target.value })}
+                  placeholder="e.g. 2026"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-semester">Semester</label>
+                <input
+                  id="score-semester"
+                  type="number"
+                  min={1}
+                  max={8}
+                  className="input-control"
+                  required
+                  value={newScore.semester}
+                  onChange={e => setNewScore({ ...newScore, semester: e.target.value })}
+                  placeholder="1-8"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-test1">CIE 1</label>
+                <input
+                  id="score-test1"
+                  type="number"
+                  className="input-control"
+                  required
+                  value={newScore.test1}
+                  onChange={e => setNewScore({ ...newScore, test1: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-test2">CIE 2</label>
+                <input
+                  id="score-test2"
+                  type="number"
+                  className="input-control"
+                  required
+                  value={newScore.test2}
+                  onChange={e => setNewScore({ ...newScore, test2: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-assignment">Assignment</label>
+                <input
+                  id="score-assignment"
+                  type="number"
+                  className="input-control"
+                  value={newScore.assignment}
+                  onChange={e => setNewScore({ ...newScore, assignment: e.target.value })}
+                  disabled={Number(newScore.semester) <= 2}
+                  aria-describedby="assignment-note"
+                />
+                <p id="assignment-note" className="field-note">
+                  Semesters 3 and above only.
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="score-exam">External (out of 50)</label>
+                <input
+                  id="score-exam"
+                  type="number"
+                  className="input-control"
+                  required
+                  value={newScore.exam}
+                  onChange={e => setNewScore({ ...newScore, exam: e.target.value })}
+                />
+              </div>
+            </form>
+          </Modal>
         )}
+
+        {/* The button for this existed and opened nothing: the markup was
+            never written. The endpoint was already there. */}
+        {showAchievementModal && (
+          <Modal
+            title="Add an achievement"
+            onClose={() => setShowAchievementModal(false)}
+            actions={(
+              <>
+                <button type="button" className="btn btn-outline" onClick={() => setShowAchievementModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" form="achievement-form" className="btn btn-primary">
+                  Save achievement
+                </button>
+              </>
+            )}
+          >
+            <form id="achievement-form" onSubmit={handleAchievementSubmit}>
+              <div className="form-group">
+                <label htmlFor="achievement-title">What did they do?</label>
+                <input
+                  id="achievement-title"
+                  className="input-control"
+                  required
+                  maxLength={200}
+                  value={newAchievement.title}
+                  onChange={e => setNewAchievement({ ...newAchievement, title: e.target.value })}
+                  placeholder="Runner-up, state hackathon"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="achievement-description">Anything worth remembering</label>
+                <textarea
+                  id="achievement-description"
+                  className="input-control"
+                  rows={3}
+                  value={newAchievement.description}
+                  onChange={e => setNewAchievement({ ...newAchievement, description: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+            </form>
+          </Modal>
+        )}
+
       </main>
     </div>
   );

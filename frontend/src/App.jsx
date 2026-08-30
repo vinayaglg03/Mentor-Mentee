@@ -12,6 +12,8 @@ import { PAGES } from './config/pages';
 
 // Layout: on screen for every signed-in route, so it is not worth splitting.
 import DashboardLayout from './components/DashboardLayout';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 
 // Shown while a route chunk is in flight. Shaped like a page rather than a
 // spinner, so the layout does not jump when the real thing arrives.
@@ -24,7 +26,11 @@ const RouteFallback = () => (
 // Guarded by what the user may do rather than by which roles happen to be
 // allowed today; the rules live in lib/permissions.js.
 const ProtectedRoute = ({ children, require: required }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Only the guarded routes wait for the session check. Deciding before it
+  // has finished would sign out everybody who reloaded the page.
+  if (loading) return <RouteFallback />;
 
   if (!user) return <Navigate to="/login" replace />;
   if (required && !can(user, required)) return <Navigate to={homeFor(user)} replace />;
@@ -83,15 +89,17 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <Router>
-          <Toaster>
-            <AppRoutes />
-          </Toaster>
-        </Router>
-      </ThemeProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider>
+          <Router>
+            <Toaster>
+              <AppRoutes />
+            </Toaster>
+          </Router>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

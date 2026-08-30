@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
@@ -12,6 +12,7 @@ import { SkeletonTable } from '../components/Skeleton';
 import { useToast } from '../components/useToast';
 import './MarksEntry.css';
 import { useCardLabels } from '../hooks/useCardLabels';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const LOG_TYPES = [
   { value: 'ROUTINE_MEETING', label: 'Routine meeting' },
@@ -44,9 +45,8 @@ const MentorDashboard = () => {
   // 640px can label each value. See hooks/useCardLabels.js.
   const cardTable0 = useCardLabels();
   const { user } = useAuth();
-  const [students, setStudents] = useState([]);
+  const queryClient = useQueryClient();
   const [unassigned, setUnassigned] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -57,12 +57,51 @@ const MentorDashboard = () => {
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [newLogText, setNewLogText] = useState('');
   const [newLog, setNewLog] = useState({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
-  const [followUps, setFollowUps] = useState([]);
   // The dashboard opens on what needs doing; the full list is one tab away.
   const [tab, setTab] = useState('attention');
-  const [attention, setAttention] = useState(null);
-  const [attentionLoading, setAttentionLoading] = useState(true);
   const toast = useToast();
+
+  // Reads go through the cache: a back-click from a student inside the
+  // staleness window renders from it with no request at all, and a refetch
+  // leaves the previous answer on screen instead of a spinner.
+  const studentsQuery = useQuery({
+    queryKey: ['mentor', 'students'],
+    // The list draws six columns; the full shape carried every semester with
+    // every alert and every mentoring remark.
+    queryFn: () => api.get('/mentors/students', { params: { view: 'summary' } })
+      .then(response => response.data),
+  });
+
+  const attentionQuery = useQuery({
+    queryKey: ['mentor', 'attention'],
+    queryFn: () => api.get('/mentors/attention').then(response => response.data),
+  });
+
+  const followUpsQuery = useQuery({
+    queryKey: ['mentor', 'follow-ups'],
+    queryFn: () => api.get('/mentors/follow-ups').then(response => response.data),
+  });
+
+  // The same list the bell in the top bar reads, so the two cannot disagree
+  // about how many alerts are open.
+  const alertsQuery = useQuery({
+    queryKey: ['mentor', 'alerts'],
+    queryFn: () => api.get('/alerts/mentor').then(response => response.data),
+  });
+
+  const students = studentsQuery.data || [];
+  const loading = studentsQuery.isPending;
+  const attention = attentionQuery.data || null;
+  const attentionLoading = attentionQuery.isPending;
+  const followUps = followUpsQuery.data || [];
+
+  // The rows a student expands into - every semester, with its mentoring log
+  // - are fetched when somebody actually expands one.
+  const detailQuery = useQuery({
+    queryKey: ['student', expandedStudentId],
+    queryFn: () => api.get(`/students/${expandedStudentId}`).then(response => response.data),
+    enabled: Boolean(expandedStudentId),
+  });
   
   const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({ 
@@ -72,38 +111,13 @@ const MentorDashboard = () => {
   const [newSubject, setNewSubject] = useState({ name: '', code: '', department: '', academicYear: new Date().getFullYear(), semester: '1' });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchStudents();
-    fetchFollowUps();
-    fetchAttention();
-  }, []);
-
   const errorMessage = (err, fallback) => err.response?.data?.error || fallback;
 
-  const fetchStudents = async () => {
-    setLoading(true);
-    setPageError('');
-    try {
-      const { data } = await api.get('/mentors/students');
-      setStudents(data);
-    } catch (err) {
-      setPageError(errorMessage(err, 'Could not load your mentees.'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAttention = async () => {
-    setAttentionLoading(true);
-    try {
-      const { data } = await api.get('/mentors/attention');
-      setAttention(data);
-    } catch (err) {
-      toast.error(err, 'Could not work out what needs your attention.');
-    } finally {
-      setAttentionLoading(false);
-    }
-  };
+  // After a write, mark the affected reads stale rather than re-running a
+  // fetch by hand; anything showing that data updates itself.
+  const fetchStudents = () => queryClient.invalidateQueries({ queryKey: ['mentor', 'students'] });
+  const fetchAttention = () => queryClient.invalidateQueries({ queryKey: ['mentor', 'attention'] });
+  const fetchFollowUps = () => queryClient.invalidateQueries({ queryKey: ['mentor', 'follow-ups'] });
 
   const fetchUnassigned = async () => {
     setPageError('');
@@ -120,14 +134,6 @@ const MentorDashboard = () => {
     setNewLogText('');
   };
 
-  const fetchFollowUps = async () => {
-    try {
-      const { data } = await api.get('/mentors/follow-ups');
-      setFollowUps(data);
-    } catch (err) {
-      toast.error(err, 'Could not load your follow-ups.');
-    }
-  };
 
   const handleAddLog = async (studentId, semesterRecordId) => {
     if (!newLogText.trim() || !semesterRecordId) return;
@@ -142,9 +148,12 @@ const MentorDashboard = () => {
         followUpDate: newLog.followUpDate || undefined,
       });
       setNewLog({ type: 'ROUTINE_MEETING', mode: 'IN_PERSON', actionItems: '', followUpDate: '' });
-      fetchFollowUps();
       setNewLogText('');
+      fetchFollowUps();
       fetchStudents();
+      // A logged conversation is what clears "nobody has spoken to them".
+      fetchAttention();
+      queryClient.invalidateQueries({ queryKey: ['student', studentId] });
     } catch (err) {
       setPageError(errorMessage(err, 'Failed to add log.'));
     }
@@ -224,9 +233,13 @@ const MentorDashboard = () => {
     (s?.rollNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeAlerts = (students || [])?.flatMap(s => 
-    (s?.semesterRecords?.[0]?.alerts || [])?.map(a => ({ ...a, studentName: s.name, rollNumber: s.rollNumber }))
-  );
+  const activeAlerts = (alertsQuery.data || [])
+    .filter(alert => !alert.resolved)
+    .map(alert => ({
+      ...alert,
+      studentName: alert.student?.name,
+      rollNumber: alert.student?.rollNumber,
+    }));
 
   return (
     <div className="dashboard-view">
@@ -247,7 +260,7 @@ const MentorDashboard = () => {
           </div>
           <div className="header-stat">
             <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Alerts this semester</label>
-            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--danger)' }}>{(students || []).filter(s => s?.semesterRecords?.[0]?.alerts?.length > 0).length}</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--danger)' }}>{(students || []).filter(s => (s?.semesterRecords?.[0]?.alertCount || 0) > 0).length}</span>
           </div>
         </div>
       </header>
@@ -430,9 +443,9 @@ const MentorDashboard = () => {
                             : `${student.semesterRecords[0].attendancePercent}%`}
                         </td>
                         <td data-label="Alerts">
-                          {(student.semesterRecords?.[0]?.alerts || [])?.length > 0 ? (
+                          {(student.semesterRecords?.[0]?.alertCount || 0) > 0 ? (
                             <span className="alert-pill alert-high">
-                              {student.semesterRecords[0].alerts.length} Active
+                              {student.semesterRecords[0].alertCount} Active
                             </span>
                           ) : (
                             <span className="alert-pill alert-low">Clear</span>
@@ -466,7 +479,10 @@ const MentorDashboard = () => {
                                   <MessageSquare size={16} /> Progress Logs History
                                 </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                  {(student.semesterRecords || []).map(record => (
+                                  {detailQuery.isPending && (
+                                    <p className="text-muted">Loading this student's record…</p>
+                                  )}
+                                  {(detailQuery.data?.semesterRecords || []).map(record => (
                                     <div key={record.id} className="card" style={{ padding: '1rem', background: 'var(--surface-raised)' }}>
                                       <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-text)' }}>Semester {record.semester}</h5>
                                       {(record.progressLogs || []).length > 0 ? (

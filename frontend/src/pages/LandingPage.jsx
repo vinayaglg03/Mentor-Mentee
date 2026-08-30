@@ -10,7 +10,7 @@ import './LandingPage.css';
 // Screenshots of the running app, light and dark, served from public/shots.
 // The stock photo of a laptop that used to sit here told a visitor nothing
 // except that nobody had got round to taking a screenshot.
-const Shot = ({ name, alt, theme, width = 1440, height = 900 }) => (
+const Shot = ({ name, alt, theme, priority = false, width = 1440, height = 900 }) => (
   <picture>
     {/* The media query is the fallback for a first paint before the theme is
         known; the explicit src below follows the theme the app is actually
@@ -21,8 +21,13 @@ const Shot = ({ name, alt, theme, width = 1440, height = 900 }) => (
       alt={alt}
       width={width}
       height={height}
-      loading="lazy"
-      decoding="async"
+      // The hero image is the largest thing above the fold, so it is the
+      // element the load time is measured against. Marking it lazy - which is
+      // right for the three below it - told the browser to wait, and put more
+      // than a second on the measurement.
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : undefined}
+      decoding={priority ? 'sync' : 'async'}
     />
   </picture>
 );
@@ -126,6 +131,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
+      <main id="main-content">
       <header className="lp-hero">
         <motion.p className="lp-eyebrow" {...enter(0)}>
           <span className="lp-eyebrow-sa" lang="sa">विद्या ददाति विनयम्</span>
@@ -171,6 +177,7 @@ const LandingPage = () => {
             <Shot
               name="dashboard"
               theme={resolvedTheme}
+              priority
               alt="The AMIS department dashboard: 30 students, 3 mentors, 68 at-risk, 97% pass rate, with charts for semester performance and alerts by type"
             />
           </div>
@@ -220,6 +227,8 @@ const LandingPage = () => {
           </motion.article>
         ))}
       </section>
+
+      </main>
 
       <footer className="lp-footer">
         <div className="lp-footer-inner">

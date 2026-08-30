@@ -6,6 +6,7 @@ import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye, ChevronDo
 import StatCard from '../components/StatCard';
 import { useCardLabels } from '../hooks/useCardLabels';
 import { useToast } from '../components/useToast';
+import { VirtualRows } from '../components/VirtualRows';
 
 
 const HODDashboard = () => {
@@ -244,8 +245,10 @@ const HODDashboard = () => {
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody>
-                {(filtered || [])?.map(s => (
+              <VirtualRows
+                items={filtered || []}
+                columnCount={6}
+                renderRow={(s) => (
                   <React.Fragment key={s.id}>
                     <tr onClick={() => toggleRow(s.id)} style={{ cursor: 'pointer' }}>
                       <td><strong>{s.rollNumber}</strong></td>
@@ -312,8 +315,8 @@ const HODDashboard = () => {
                       </tr>
                     )}
                   </React.Fragment>
-                ))}
-              </tbody>
+                )}
+              />
             </table>
           </div>
         </div>

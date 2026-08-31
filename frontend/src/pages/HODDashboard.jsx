@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut } from '../components/Charts';
 import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye, ChevronDown, MessageSquare } from 'lucide-react';
 import StatCard from '../components/StatCard';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const HODDashboard = () => {
   const navigate = useNavigate();

@@ -20,9 +20,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* White on --danger measures about 3.9:1, which is below the threshold for
+   text this small. The darker end of the ramp clears it in both themes. */
 .bell-count.is-high {
-  background: var(--danger);
-  color: var(--text-on-accent);
+  background: var(--danger-strong);
+  color: var(--danger-on-strong);
 }
 
 .bell-panel {

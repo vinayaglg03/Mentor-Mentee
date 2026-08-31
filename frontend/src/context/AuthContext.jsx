@@ -76,7 +76,14 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, logoutEverywhere, loading, setUser }}>
-      {!loading && children}
+      {/* Rendered immediately, not after the session check.
+          Holding the tree back until /auth/refresh settled meant nothing
+          painted until it did - and on a visitor's first load there is no
+          session to find, so the landing page waited on a request that was
+          always going to fail. Measured at 3.5 seconds of render delay with
+          the API unreachable. The routes that need to know who you are wait
+          for `loading` themselves. */}
+      {children}
     </AuthContext.Provider>
   );
 };

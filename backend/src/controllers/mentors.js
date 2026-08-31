@@ -27,10 +27,74 @@ export const getMentors = async (req, res, next) => {
   }
 };
 
+// The list view needs a name, a semester, an attendance figure and a count.
+// The full shape carries every semester a student has been through, with
+// every alert, every attendance row and every mentoring remark with its
+// author - for thirty mentees across eight semesters that is a large
+// response, fetched again on every visit to the dashboard, to render six
+// columns.
+//
+// ?view=summary returns only what the list draws. The full shape is still
+// the default, because other callers depend on it, and the detail a row
+// expands into is fetched from /students/:id when somebody expands it.
+const summaryFor = async (where) => {
+  const students = await prisma.student.findMany({
+    where,
+    select: {
+      id: true,
+      rollNumber: true,
+      name: true,
+      email: true,
+      department: true,
+      currentYear: true,
+      currentSemester: true,
+      currentAcademicYear: true,
+      enrollmentYear: true,
+      semesterRecords: {
+        orderBy: { semester: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          semester: true,
+          sgpa: true,
+          attendance: { select: { classesHeld: true, classesAttended: true } },
+          _count: { select: { alerts: { where: { resolved: false } } } },
+        },
+      },
+    },
+    orderBy: { rollNumber: 'asc' },
+  });
+
+  return students.map((student) => {
+    const [record] = student.semesterRecords;
+    const held = (record?.attendance || []).reduce((sum, row) => sum + row.classesHeld, 0);
+    const attended = (record?.attendance || []).reduce((sum, row) => sum + row.classesAttended, 0);
+
+    return {
+      ...student,
+      semesterRecords: record
+        ? [{
+          id: record.id,
+          semester: record.semester,
+          sgpa: record.sgpa,
+          attendancePercent: held > 0 ? Math.round((attended / held) * 1000) / 10 : null,
+          alertCount: record._count.alerts,
+        }]
+        : [],
+    };
+  });
+};
+
 export const getAssignedStudents = async (req, res, next) => {
   try {
+    const where = { status: 'ACTIVE', mentorId: req.user.id };
+
+    if (req.query.view === 'summary') {
+      return res.json(await summaryFor(where));
+    }
+
     const students = await prisma.student.findMany({
-      where: { status: 'ACTIVE', mentorId: req.user.id },
+      where,
       include: {
         semesterRecords: {
           orderBy: { semester: 'desc' },

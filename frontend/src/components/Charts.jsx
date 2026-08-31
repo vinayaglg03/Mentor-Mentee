@@ -30,32 +30,47 @@ const useChartTheme = () => {
   return resolvedTheme;
 };
 
-export const Bar = ({ height, ...props }) => {
+export const Bar = ({ height, label, summary, ...props }) => {
   const theme = useChartTheme();
 
   return (
     <Suspense fallback={<ChartFallback height={height} />}>
-      <LazyBar key={theme} {...props} />
+      <LazyBar
+        key={theme}
+        aria-label={label}
+        fallbackContent={summary ? <p>{summary}</p> : undefined}
+        {...props}
+      />
     </Suspense>
   );
 };
 
-export const Line = ({ height, ...props }) => {
+export const Line = ({ height, label, summary, ...props }) => {
   const theme = useChartTheme();
 
   return (
     <Suspense fallback={<ChartFallback height={height} />}>
-      <LazyLine key={theme} {...props} />
+      <LazyLine
+        key={theme}
+        aria-label={label}
+        fallbackContent={summary ? <p>{summary}</p> : undefined}
+        {...props}
+      />
     </Suspense>
   );
 };
 
-export const Doughnut = ({ height, ...props }) => {
+export const Doughnut = ({ height, label, summary, ...props }) => {
   const theme = useChartTheme();
 
   return (
     <Suspense fallback={<ChartFallback height={height} />}>
-      <LazyDoughnut key={theme} {...props} />
+      <LazyDoughnut
+        key={theme}
+        aria-label={label}
+        fallbackContent={summary ? <p>{summary}</p> : undefined}
+        {...props}
+      />
     </Suspense>
   );
 };

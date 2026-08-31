@@ -279,8 +279,9 @@ const MarksEntry = () => {
 
       <div className="card marks-filters">
         <div className="form-group">
-          <label>Department</label>
+          <label htmlFor="marks-department">Department</label>
           <select
+            id="marks-department"
             className="input-control"
             value={filters.department}
             onChange={e => setFilters({ ...filters, department: e.target.value, subjectId: '' })}
@@ -293,8 +294,9 @@ const MarksEntry = () => {
         </div>
 
         <div className="form-group">
-          <label>Semester</label>
+          <label htmlFor="marks-semester">Semester</label>
           <select
+            id="marks-semester"
             className="input-control"
             value={filters.semester}
             onChange={e => setFilters({ ...filters, semester: e.target.value, subjectId: '' })}
@@ -306,8 +308,9 @@ const MarksEntry = () => {
         </div>
 
         <div className="form-group">
-          <label>Academic year</label>
+          <label htmlFor="marks-academic-year">Academic year</label>
           <input
+            id="marks-academic-year"
             type="number"
             className="input-control"
             value={filters.academicYear}
@@ -316,8 +319,9 @@ const MarksEntry = () => {
         </div>
 
         <div className="form-group marks-subject">
-          <label>Subject</label>
+          <label htmlFor="marks-subject">Subject</label>
           <select
+            id="marks-subject"
             className="input-control"
             value={filters.subjectId}
             onChange={e => setFilters({ ...filters, subjectId: e.target.value })}
@@ -363,7 +367,7 @@ const MarksEntry = () => {
             />
           ) : (
             <div className="table-responsive marks-table-wrap">
-              <table className="data-table marks-table">
+              <table className="data-table marks-table sticky-first sticky-head">
                 <thead>
                   <tr>
                     <th>Roll number</th>

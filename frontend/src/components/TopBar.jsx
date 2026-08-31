@@ -1,4 +1,5 @@
 import React from 'react';
+import { Menu } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 import { useAuth } from '../context/useAuth';
 import GlobalSearch from './GlobalSearch';
@@ -6,11 +7,24 @@ import ReportProblem from './ReportProblem';
 import NotificationBell from './NotificationBell';
 import './TopBar.css';
 
-const TopBar = () => {
+const TopBar = ({ navOpen = false, onToggleNav }) => {
   const { user } = useAuth();
 
   return (
     <header className="topbar">
+      {/* Only rendered as a control below 768px, where the sidebar is a
+          drawer. Above that the navigation is always on screen. */}
+      <button
+        type="button"
+        className="nav-toggle"
+        onClick={onToggleNav}
+        aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+        aria-expanded={navOpen}
+        aria-controls="main-navigation"
+      >
+        <Menu size={22} aria-hidden="true" />
+      </button>
+
       <GlobalSearch />
 
       <div className="topbar-actions">

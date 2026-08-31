@@ -4,15 +4,22 @@ import api from '../services/api';
 import { Bar, Doughnut } from '../components/Charts';
 import { Users, GraduationCap, AlertTriangle, TrendingUp, Search, Eye, ChevronDown, MessageSquare } from 'lucide-react';
 import StatCard from '../components/StatCard';
+import { useCardLabels } from '../hooks/useCardLabels';
+import { useToast } from '../components/useToast';
+import { VirtualRows } from '../components/VirtualRows';
 
 
 const HODDashboard = () => {
+  // Column names are copied onto the cells so the card layout below
+  // 640px can label each value. See hooks/useCardLabels.js.
+  const cardTable0 = useCardLabels();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('overview');
   const [analytics, setAnalytics] = useState(null);
   const [students, setStudents] = useState([]);
   const [mentors, setMentors] = useState([]);
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -48,8 +55,11 @@ const HODDashboard = () => {
     try {
       await api.put(`/hod/students/${studentId}/assign`, { mentorId });
       fetchData();
-    } catch {
-      alert("Assignment failed");
+      toast.success('Mentor assigned.');
+    } catch (error) {
+      // Usually the mentor is at their cap, and the server says which -
+      // a bare "Assignment failed" threw that away.
+      toast.error(error, 'Could not assign that mentor.');
     }
   };
 
@@ -114,7 +124,7 @@ const HODDashboard = () => {
 
   const renderOverview = () => (
     <>
-      <div className="stats-grid mt-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+      <div className="stats-grid mt-4">
         <StatCard title="Total Students" value={analytics?.totalStudents || 0} icon={Users} type="primary" />
         <StatCard title="Active Mentors" value={analytics?.totalMentors || 0} icon={GraduationCap} type="info" />
         <StatCard title="At-Risk Students" value={analytics?.alertStats?.totalActive || 0} icon={AlertTriangle} type="danger" />
@@ -126,12 +136,18 @@ const HODDashboard = () => {
         />
       </div>
 
-      <div className="mt-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="mt-4 panel-grid panel-grid-even">
         <div className="card">
           <div className="card-header"><h3>Semester-wise Performance</h3></div>
           <div className="card-body" style={{ height: '250px' }}>
             {analytics?.performanceOverview?.total > 0 ? (
-              <Bar data={performanceData} options={chartOptions} />
+              <Bar
+                data={performanceData}
+                options={chartOptions}
+                label="Passes and failures by semester"
+                summary={`${analytics?.performanceOverview?.pass || 0} passes and `
+                  + `${analytics?.performanceOverview?.fail || 0} failures across the department.`}
+              />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No data available</div>
             )}
@@ -141,7 +157,14 @@ const HODDashboard = () => {
           <div className="card-header"><h3>Active Alerts by Type</h3></div>
           <div className="card-body" style={{ height: '250px' }}>
             {alertData.labels.length > 0 ? (
-              <Doughnut data={alertData} options={doughnutOptions} />
+              <Doughnut
+                data={alertData}
+                options={doughnutOptions}
+                label="Open alerts by type"
+                summary={(analytics?.alertStats?.byType || [])
+                  .map(item => `${item.type.toLowerCase().replace(/_/g, ' ')}: ${item.count}`)
+                  .join(', ')}
+              />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No alerts yet</div>
             )}
@@ -149,12 +172,19 @@ const HODDashboard = () => {
         </div>
       </div>
 
-      <div className="mt-4" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="mt-4 panel-grid panel-grid-wide">
         <div className="card">
           <div className="card-header"><h3>Mentor Workload</h3></div>
           <div className="card-body" style={{ height: '300px' }}>
             {mentorDistData.labels.length > 0 ? (
-              <Bar data={mentorDistData} options={chartOptions} />
+              <Bar
+                data={mentorDistData}
+                options={chartOptions}
+                label="Number of mentees per mentor"
+                summary={(analytics?.mentorDistribution || [])
+                  .map(item => `${item.name}: ${item.studentCount}`)
+                  .join(', ')}
+              />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">No assignments found</div>
             )}
@@ -186,16 +216,25 @@ const HODDashboard = () => {
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
             <h3>Students in your department</h3>
-            <div className="search-box" style={{ width: '250px', background: 'var(--surface-sunken)', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <Search size={16} className="text-muted" />
-              <input type="text" placeholder="Search USN/Name..." style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            {/* Was a hard 250px, which does not fit beside a heading on a
+                phone. */}
+            <div className="filter-box">
+              <Search size={16} className="text-muted" aria-hidden="true" />
+              <label htmlFor="hod-student-filter" className="sr-only">Filter students</label>
+              <input
+                id="hod-student-filter"
+                type="search"
+                placeholder="Filter by USN or name…"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </div>
         
         <div className="card-body">
           <div className="table-responsive">
-            <table className="data-table">
+            <table ref={cardTable0} className="data-table table-cards sticky-first sticky-head">
               <thead>
                 <tr>
                   <th>USN</th>
@@ -206,8 +245,10 @@ const HODDashboard = () => {
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody>
-                {(filtered || [])?.map(s => (
+              <VirtualRows
+                items={filtered || []}
+                columnCount={6}
+                renderRow={(s) => (
                   <React.Fragment key={s.id}>
                     <tr onClick={() => toggleRow(s.id)} style={{ cursor: 'pointer' }}>
                       <td><strong>{s.rollNumber}</strong></td>
@@ -245,7 +286,7 @@ const HODDashboard = () => {
                     {expandedStudentId === s.id && (
                       <tr className="expanded-row-bg">
                         <td colSpan="6" style={{ padding: '1.5rem', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', gap: '2rem' }}>
+                          <div className="detail-columns">
                             <div style={{ flex: 1 }}>
                               <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <MessageSquare size={16} /> Progress Logs History
@@ -274,8 +315,8 @@ const HODDashboard = () => {
                       </tr>
                     )}
                   </React.Fragment>
-                ))}
-              </tbody>
+                )}
+              />
             </table>
           </div>
         </div>

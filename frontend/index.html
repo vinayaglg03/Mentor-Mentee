@@ -12,6 +12,13 @@
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="apple-touch-icon" href="/icon.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- The landing hero. Discovered here rather than after the bundle has
+         parsed and rendered, which is a second and a half later. Both themes
+         are listed; the browser fetches the one that matches. -->
+    <link rel="preload" as="image" href="/shots/dashboard-light.webp"
+          media="(prefers-color-scheme: light)" fetchpriority="high" />
+    <link rel="preload" as="image" href="/shots/dashboard-dark.webp"
+          media="(prefers-color-scheme: dark)" fetchpriority="high" />
   <meta name="theme-color" content="#1d4ed8" />
 
   <!--

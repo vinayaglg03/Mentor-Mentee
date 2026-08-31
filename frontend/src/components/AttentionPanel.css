@@ -73,7 +73,9 @@
   color: var(--text-secondary);
 }
 
-.attention-bad { color: var(--danger); font-weight: 600; }
+/* --danger is the fill colour for icons and bars; text on a surface has to
+   use the -fg member of the pair, which is chosen to clear 4.5:1. */
+.attention-bad { color: var(--danger-fg); font-weight: 600; }
 
 @media (max-width: 640px) {
   .attention-list { max-height: none; }

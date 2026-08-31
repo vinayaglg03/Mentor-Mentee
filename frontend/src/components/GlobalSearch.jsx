@@ -17,6 +17,10 @@ const GlobalSearch = () => {
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const [searching, setSearching] = useState(false);
+  // Below 768px the field is an icon until it is asked for, then it takes
+  // the whole bar. A fixed-width search row does not fit a 390px phone
+  // alongside a hamburger, the alert bell and a role badge.
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -26,11 +30,14 @@ const GlobalSearch = () => {
 
       if (event.key === '/' && !typingElsewhere) {
         event.preventDefault();
-        inputRef.current?.focus();
+        setExpanded(true);
+        // The field may only just have been rendered.
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
 
       if (event.key === 'Escape') {
         setOpen(false);
+        setExpanded(false);
         inputRef.current?.blur();
       }
     };
@@ -89,7 +96,21 @@ const GlobalSearch = () => {
   };
 
   return (
-    <div className="global-search">
+    <div className={`global-search ${expanded ? 'is-expanded' : ''}`}>
+      {/* Shown only on small screens, where the field itself is collapsed. */}
+      <button
+        type="button"
+        className="global-search-trigger"
+        onClick={() => {
+          setExpanded(true);
+          requestAnimationFrame(() => inputRef.current?.focus());
+        }}
+        aria-label="Search students"
+        aria-expanded={expanded}
+      >
+        <Search size={20} aria-hidden="true" />
+      </button>
+
       <label htmlFor="global-search-input" className="sr-only">Search students</label>
       <Search size={16} className="global-search-icon" aria-hidden="true" />
       <input
@@ -102,7 +123,12 @@ const GlobalSearch = () => {
         onChange={e => setTerm(e.target.value)}
         onKeyDown={onKeyDown}
         onFocus={() => { if (results.length > 0) setOpen(true); }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => setTimeout(() => {
+          setOpen(false);
+          // Collapse again on a phone, but not while there is a term worth
+          // coming back to.
+          setExpanded(current => (term ? current : false));
+        }, 150)}
         role="combobox"
         aria-expanded={open}
         aria-controls="global-search-results"

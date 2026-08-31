@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
 import { atLeast } from '../lib/permissions';
 import DemoBanner from './DemoBanner';
 import ConnectionBanner from './ConnectionBanner';
@@ -11,18 +12,27 @@ import ConnectionBanner from './ConnectionBanner';
 const DashboardLayout = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
+  const { reduceMotion } = useTheme();
+
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = useCallback(() => setNavOpen(false), []);
 
   // A HOD or coordinator with nothing assigned to them sees empty screens.
   // Say why rather than letting it look broken.
   const unscoped = atLeast(user, 'COORDINATOR') && user?.role !== 'SUPER_ADMIN' && !user?.departmentId;
 
+  // Opacity only, and short. `mode="wait"` used to hold the incoming page
+  // back until the outgoing one had finished leaving: 300ms out plus 300ms
+  // in, before any data was even requested.
+  const transition = reduceMotion ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' };
+
   return (
     <div className="app-container">
       {/* First stop for a keyboard user: skip the whole navigation. */}
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <Sidebar />
-      <div className="main-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <TopBar />
+      <Sidebar open={navOpen} onClose={closeNav} />
+      <div className="main-wrapper">
+        <TopBar navOpen={navOpen} onToggleNav={() => setNavOpen(open => !open)} />
         <main className="main-content" id="main-content" tabIndex={-1}>
           <ConnectionBanner />
           <DemoBanner />
@@ -32,17 +42,12 @@ const DashboardLayout = ({ children }) => {
               Ask an administrator to assign you one.
             </div>
           )}
-          {/* No `mode="wait"`: it held the incoming page back until the
-              outgoing one had finished leaving, which cost 600ms on every
-              navigation before a single request went out. Opacity only —
-              a `y` offset animates layout, not just the compositor. */}
           <AnimatePresence>
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
+              transition={transition}
             >
               {children}
             </motion.div>

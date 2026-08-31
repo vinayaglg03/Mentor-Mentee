@@ -48,6 +48,7 @@
   --red-400: #f87171;
   --red-500: #ef4444;
   --red-600: #dc2626;
+  --red-700: #b91c1c;
   --red-800: #991b1b;
 
   --amber-400: #fbbf24;
@@ -125,6 +126,10 @@
   --danger: var(--red-500);
   --danger-soft: #fee2e2;
   --danger-fg: var(--red-800);
+  /* For a solid danger fill carrying small text - a count badge, say. White
+     on --danger is about 3.9:1, under the threshold for 11px. */
+  --danger-strong: var(--red-700);
+  --danger-on-strong: #ffffff;
 
   --warning: var(--amber-600);
   --warning-soft: #fef3c7;
@@ -200,6 +205,10 @@
   /* --- Layout ------------------------------------------------------------- */
   --sidebar-width: 260px;
   --topbar-height: 68px;
+  /* Icon-only column between 768 and 1024. Declared once here rather than by
+     redefining --sidebar-width in a media query, which previously shrank the
+     column without giving the sidebar an icon-only mode to match. */
+  --sidebar-width-rail: 84px;
 
   /* Every transition and animation in the app is expressed in terms of these,
      so reduced motion is one place to change rather than a hunt. */
@@ -255,6 +264,8 @@
     --chrome-fg-muted: var(--slate-400);
 
     --danger: var(--red-400);
+  --danger-strong: var(--red-400);
+  --danger-on-strong: var(--slate-950);
     --danger-soft: rgba(248, 113, 113, 0.16);
     --danger-fg: #fca5a5;
 
@@ -310,6 +321,8 @@
   --chrome-fg-muted: var(--slate-400);
 
   --danger: var(--red-400);
+  --danger-strong: var(--red-400);
+  --danger-on-strong: var(--slate-950);
   --danger-soft: rgba(248, 113, 113, 0.16);
   --danger-fg: #fca5a5;
 
@@ -411,6 +424,17 @@ a {
 .app-container {
   display: flex;
   min-height: 100vh;
+}
+
+/* The column beside the sidebar. This used to be an inline style on the
+   element; without min-width:0 a flex child refuses to shrink below its
+   content, so a wide table pushed the whole shell past the viewport and the
+   page scrolled sideways. */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .main-content {
@@ -567,6 +591,48 @@ a {
   background-color: var(--surface-sunken);
 }
 
+/* The header stays put while a long list scrolls, so you never have to
+   scroll back up to remember which column you are reading. */
+.sticky-head thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Opt-in: keeps the student's name on screen while the marks columns scroll
+   sideways. Without it you are reading a row of numbers with no idea whose
+   they are. The cell needs its own background because a sticky cell is
+   painted over the ones it passes. */
+.sticky-first th:first-child,
+.sticky-first td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-raised);
+}
+
+.sticky-first th:first-child {
+  z-index: 3;
+  background: var(--surface-sunken);
+}
+
+.sticky-first tr:hover td:first-child {
+  background: var(--surface-sunken);
+}
+
+/* A hairline so the frozen column reads as separate from what scrolls under
+   it, rather than as text overlapping text. */
+.sticky-first th:first-child::after,
+.sticky-first td:first-child::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
 /* --- Badges ------------------------------------------------------------------ */
 
 .badge {
@@ -679,8 +745,7 @@ a {
 @media (max-width: 767px) {
   .main-content {
     padding: var(--space-3);
-    /* Clear of the bottom navigation bar. */
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -690,10 +755,23 @@ a {
    .table-cards become one card per row, with each cell labelled by its
    column heading through a data-label attribute. */
 
-@media (max-width: 767px) {
+@media (max-width: 639px) {
   .table-responsive { overflow-x: visible; }
 
   .data-table.table-cards { min-width: 0; }
+
+  /* Nothing is scrolling sideways in card mode, so nothing should be frozen
+     against it. */
+  .table-cards.sticky-first th:first-child,
+  .table-cards.sticky-first td:first-child {
+    position: static;
+    background: transparent;
+  }
+
+  .table-cards.sticky-first th:first-child::after,
+  .table-cards.sticky-first td:first-child::after {
+    display: none;
+  }
 
   .data-table.table-cards,
   .data-table.table-cards thead,
@@ -751,21 +829,125 @@ a {
     margin-top: var(--space-1);
   }
 
+}
+
+@media (max-width: 767px) {
   .btn-icon {
     min-width: 40px;
     min-height: 40px;
   }
+}
 
-  /* Modals become sheets rather than centred boxes that overflow. */
-  .modal { align-items: flex-end; }
+/* Two-panel rows. These were inline `gridTemplateColumns: '1fr 1fr'`, which
+   has no way to collapse: on a phone the right-hand panel sat off the edge
+   of the screen with no scrollbar to reach it. */
+.panel-grid {
+  display: grid;
+  gap: var(--space-6);
+}
 
-  .modal-content {
-    max-width: 100% !important;
-    width: 100%;
-    max-height: 92vh;
-    overflow-y: auto;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+.panel-grid-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panel-grid-wide { grid-template-columns: 2fr minmax(0, 1fr); }
+
+.detail-columns {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.detail-columns > * { min-width: 0; }
+
+@media (max-width: 1023px) {
+  .panel-grid-even,
+  .panel-grid-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel-grid { gap: var(--space-4); }
+}
+
+/* An in-card filter field. */
+.filter-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(16rem, 100%);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.filter-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  /* Below this the heading and the filter stack rather than fight. */
+  .card-header .flex-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .filter-box { width: 100%; }
+}
+
+/* --- Sticky table furniture ---------------------------------------------------
+   Marks tables are wider than any screen. Scrolling right used to take the
+   student's name with it, so you were typing numbers into an anonymous row. */
+
+.table-responsive {
+  position: relative;
+}
+
+.data-table.sticky-head thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* The header must be opaque or rows show through it as they pass under. */
+  background: var(--surface-sunken);
+}
+
+.data-table.sticky-first td:first-child,
+.data-table.sticky-first th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-raised);
+  /* An edge, so it reads as pinned rather than as part of the scrolling row. */
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.data-table.sticky-first thead th:first-child {
+  z-index: 3;
+  background: var(--surface-sunken);
+}
+
+.data-table.sticky-first tr:hover td:first-child {
+  background: var(--surface);
+}
+
+/* Sticking a cell takes it out of the row's background, so the stripe has to
+   be repainted on it. */
+.data-table.sticky-first tr:nth-child(even) td:first-child {
+  background: var(--surface-raised);
+}
+
+@media (max-width: 639px) {
+  /* Card layout below 640: there is nothing to stick to. */
+  .data-table.sticky-first td:first-child,
+  .data-table.sticky-first th:first-child,
+  .data-table.sticky-head thead th {
+    position: static;
+    box-shadow: none;
   }
 }
 
@@ -781,6 +963,20 @@ a {
 
 .sidebar :focus-visible {
   outline-color: var(--chrome-fg);
+}
+
+/* Present for a screen reader, absent for everybody else. Used where a
+   section needs a heading for structure but showing one would be noise. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Skip link: the first thing a keyboard user reaches. */

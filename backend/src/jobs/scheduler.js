@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import config from '../config.js';
 import logger from '../logger.js';
 import { runDailyDigests, runWeeklyDigests } from './digestJobs.js';
+import { runHighSeverityNotifications } from './highSeverityAlerts.js';
 import { runInactivityCheck } from './inactivityCheck.js';
 
 // In-process scheduling, which is the right size for one instance.
@@ -46,6 +47,10 @@ export const startScheduler = () => {
   schedule('daily-digest', config.notifications.dailyDigestCron, runDailyDigests);
   schedule('weekly-digest', config.notifications.weeklyDigestCron, runWeeklyDigests);
   schedule('inactivity-check', config.notifications.inactivityCron, runInactivityCheck);
+  // Hourly rather than immediately: a bulk import raises thousands of alerts
+  // in one go, and forty separate emails from one spreadsheet is not a
+  // notification, it is a reason to filter the sender.
+  schedule('high-severity-alerts', config.notifications.highSeverityCron, runHighSeverityNotifications);
 
   return tasks;
 };

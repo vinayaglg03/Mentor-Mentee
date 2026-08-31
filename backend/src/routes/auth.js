@@ -1,10 +1,10 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, refresh, logout, logoutEverywhere, me, createUser, getPendingUsers, approveUser, setUserDepartment, setUserRole } from '../controllers/auth.js';
+import { register, login, refresh, logout, logoutEverywhere, changePassword, me, createUser, getPendingUsers, approveUser, setUserDepartment, setUserRole } from '../controllers/auth.js';
 import { authConfig, startGoogleSignIn, googleCallback } from '../controllers/googleAuth.js';
 import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { registerSchema, loginSchema, createUserSchema, approveUserSchema, setUserDepartmentSchema, setUserRoleSchema } from '../schemas/auth.js';
+import { registerSchema, loginSchema, changePasswordSchema, createUserSchema, approveUserSchema, setUserDepartmentSchema, setUserRoleSchema } from '../schemas/auth.js';
 
 const router = express.Router();
 
@@ -35,6 +35,16 @@ router.post('/login', authLimiter, validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/logout-everywhere', authenticateToken, logoutEverywhere);
+
+// Rate-limited like the other credential endpoints: it takes the current
+// password, so it is guessable in exactly the same way sign-in is.
+router.post(
+  '/change-password',
+  authLimiter,
+  authenticateToken,
+  validate(changePasswordSchema),
+  changePassword,
+);
 
 router.get('/me', authenticateToken, me);
 

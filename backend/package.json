@@ -17,6 +17,7 @@
     "seed:demo": "node src/jobs/seedDemo.js",
     "perf:analytics": "node src/jobs/perfCheck.js",
     "job:retention": "node src/jobs/retention.js",
+    "job:high-alerts": "node src/jobs/highSeverityAlerts.js",
     "seed": "node seed.js",
     "test": "vitest run"
   },

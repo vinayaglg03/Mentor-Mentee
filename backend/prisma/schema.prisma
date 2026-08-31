@@ -7,64 +7,65 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
+  id                  String             @id @default(uuid())
+  name                String
+  email               String             @unique
   // Null for accounts that only ever sign in with Google.
-  password     String?
-  googleId     String?       @unique
-  avatarUrl    String?
-  role         Role          @default(MENTOR)
-  approved     Boolean       @default(false)
-  isDemo       Boolean       @default(false)
+  password            String?
+  googleId            String?            @unique
+  avatarUrl           String?
+  role                Role               @default(MENTOR)
+  approved            Boolean            @default(false)
+  isDemo              Boolean            @default(false)
   // The department a HOD heads, or the one a coordinator/mentor belongs to.
-  departmentId String?
+  departmentId        String?
   // How often this person wants a digest, and the token that lets them turn
   // it off from the email without signing in.
-  digestFrequency  DigestFrequency @default(DAILY)
-  unsubscribeToken String?         @unique
-  lastDigestAt     DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  maxStudents  Int           @default(30)
-  progressLogs ProgressLog[]
-  students     Student[]     @relation("AssignedStudents")
-  department   Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
-  refreshTokens RefreshToken[]
-  rollovers    SemesterRollover[] @relation("RolloverActor")
-  auditEntries AuditLog[]         @relation("AuditActor")
-  headedDepartments Department[] @relation("DepartmentHod")
-  coordinatedSections Section[]  @relation("SectionCoordinator")
+  digestFrequency     DigestFrequency    @default(DAILY)
+  unsubscribeToken    String?            @unique
+  lastDigestAt        DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  maxStudents         Int                @default(30)
+  progressLogs        ProgressLog[]
+  students            Student[]          @relation("AssignedStudents")
+  department          Department?        @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  refreshTokens       RefreshToken[]
+  rollovers           SemesterRollover[] @relation("RolloverActor")
+  auditEntries        AuditLog[]         @relation("AuditActor")
+  headedDepartments   Department[]       @relation("DepartmentHod")
+  coordinatedSections Section[]          @relation("SectionCoordinator")
+  preference          UserPreference?
 
   @@index([departmentId])
 }
 
 model Student {
-  id                  String           @id @default(uuid())
+  id                  String        @id @default(uuid())
   name                String
-  rollNumber          String           @unique
+  rollNumber          String        @unique
   /// @deprecated Replaced by departmentId. Kept for one release so a rollback is possible.
   department          String
-  currentYear         Int              @default(1)
-  currentSemester     Int              @default(1)
+  currentYear         Int           @default(1)
+  currentSemester     Int           @default(1)
   currentAcademicYear Int
   enrollmentYear      Int
-  email               String?          @unique
-  verified            Boolean          @default(false)
-  isDemo              Boolean          @default(false)
-  status              StudentStatus    @default(ACTIVE)
+  email               String?       @unique
+  verified            Boolean       @default(false)
+  isDemo              Boolean       @default(false)
+  status              StudentStatus @default(ACTIVE)
   mentorId            String?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
   departmentId        String
   batchId             String
   sectionId           String?
 
-  mentor              User?            @relation("AssignedStudents", fields: [mentorId], references: [id])
-  departmentRef       Department       @relation(fields: [departmentId], references: [id])
-  batch               Batch            @relation(fields: [batchId], references: [id])
-  section             Section?         @relation(fields: [sectionId], references: [id])
-  semesterRecords     SemesterRecord[]
+  mentor          User?            @relation("AssignedStudents", fields: [mentorId], references: [id])
+  departmentRef   Department       @relation(fields: [departmentId], references: [id])
+  batch           Batch            @relation(fields: [batchId], references: [id])
+  section         Section?         @relation(fields: [sectionId], references: [id])
+  semesterRecords SemesterRecord[]
 
   @@index([mentorId])
   @@index([departmentId])
@@ -85,11 +86,12 @@ model Department {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  hod       User?     @relation("DepartmentHod", fields: [hodId], references: [id])
-  members   User[]    @relation("DepartmentMembers")
-  students  Student[]
-  subjects  Subject[]
-  batches   Batch[]
+  hod         User?            @relation("DepartmentHod", fields: [hodId], references: [id])
+  members     User[]           @relation("DepartmentMembers")
+  students    Student[]
+  subjects    Subject[]
+  batches     Batch[]
+  preferredBy UserPreference[] @relation("PreferenceDefaultDepartment")
 }
 
 // One intake of students, e.g. CSE 2024. Promotion happens per batch.
@@ -101,10 +103,10 @@ model Batch {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  department      Department @relation(fields: [departmentId], references: [id])
-  sections        Section[]
-  students        Student[]
-  rollovers       SemesterRollover[]
+  department Department         @relation(fields: [departmentId], references: [id])
+  sections   Section[]
+  students   Student[]
+  rollovers  SemesterRollover[]
 
   @@unique([departmentId, admissionYear])
   @@index([departmentId])
@@ -118,9 +120,9 @@ model Section {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  batch         Batch     @relation(fields: [batchId], references: [id])
-  coordinator   User?     @relation("SectionCoordinator", fields: [coordinatorId], references: [id])
-  students      Student[]
+  batch       Batch     @relation(fields: [batchId], references: [id])
+  coordinator User?     @relation("SectionCoordinator", fields: [coordinatorId], references: [id])
+  students    Student[]
 
   @@unique([batchId, name])
   @@index([batchId])
@@ -136,7 +138,7 @@ model SemesterRecord {
   cgpa         Float?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   scores       Score[]
   achievements Achievement[]
@@ -161,7 +163,7 @@ model Subject {
   credits      Int     @default(3)
   isDemo       Boolean @default(false)
 
-  departmentRef Department  @relation(fields: [departmentId], references: [id])
+  departmentRef Department   @relation(fields: [departmentId], references: [id])
   scores        Score[]
   attendance    Attendance[]
 
@@ -179,7 +181,7 @@ model Achievement {
 }
 
 model Score {
-  id               String         @id @default(uuid())
+  id               String   @id @default(uuid())
   semesterRecordId String
   subjectId        String
   test1            Float?
@@ -188,11 +190,11 @@ model Score {
   internalTotal    Float?
   exam             Float?
   finalScore       Float?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  
-  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
-  subject          Subject        @relation(fields: [subjectId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  semesterRecord SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  subject        Subject        @relation(fields: [subjectId], references: [id])
 
   @@unique([semesterRecordId, subjectId])
   // Pass/fail and average aggregates scan on this.
@@ -202,17 +204,17 @@ model Score {
 // Classes held and attended for one subject in one semester. Eligibility
 // rules (75% / 85%) are what most at-risk conversations actually hinge on.
 model Attendance {
-  id               String         @id @default(uuid())
+  id               String   @id @default(uuid())
   semesterRecordId String
   subjectId        String
   classesHeld      Int
   classesAttended  Int
-  asOfDate         DateTime       @default(now())
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  asOfDate         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
-  subject          Subject        @relation(fields: [subjectId], references: [id])
+  semesterRecord SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  subject        Subject        @relation(fields: [subjectId], references: [id])
 
   @@unique([semesterRecordId, subjectId])
   @@index([semesterRecordId])
@@ -235,24 +237,24 @@ model Alert {
 }
 
 model ProgressLog {
-  id               String         @id @default(uuid())
-  semesterRecordId String
-  mentorId         String
-  remark           String
-  date             DateTime       @default(now())
-  type             LogType        @default(ROUTINE_MEETING)
-  mode             LogMode        @default(IN_PERSON)
-  actionItems      String?
-  followUpDate     DateTime?
-  studentAcknowledged Boolean     @default(false)
+  id                  String         @id @default(uuid())
+  semesterRecordId    String
+  mentorId            String
+  remark              String
+  date                DateTime       @default(now())
+  type                LogType        @default(ROUTINE_MEETING)
+  mode                LogMode        @default(IN_PERSON)
+  actionItems         String?
+  followUpDate        DateTime?
+  studentAcknowledged Boolean        @default(false)
   // A correction points at the entry it corrects; the original is kept.
-  correctsId       String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  mentor           User           @relation(fields: [mentorId], references: [id])
-  semesterRecord   SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
-  corrects         ProgressLog?   @relation("LogCorrection", fields: [correctsId], references: [id])
-  correctedBy      ProgressLog[]  @relation("LogCorrection")
+  correctsId          String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  mentor              User           @relation(fields: [mentorId], references: [id])
+  semesterRecord      SemesterRecord @relation(fields: [semesterRecordId], references: [id], onDelete: Cascade)
+  corrects            ProgressLog?   @relation("LogCorrection", fields: [correctsId], references: [id])
+  correctedBy         ProgressLog[]  @relation("LogCorrection")
 
   @@index([mentorId, followUpDate])
   @@index([semesterRecordId])
@@ -293,19 +295,19 @@ model PendingImport {
 // One record per promotion run: who ran it, when, and what it did. Also what
 // makes a second run safe - the run is keyed to the semester it started from.
 model SemesterRollover {
-  id             String   @id @default(uuid())
-  batchId        String
-  actorId        String?
-  fromSemester   Int
-  toSemester     Int
-  promoted       Int      @default(0)
-  graduated      Int      @default(0)
-  skipped        Int      @default(0)
-  details        Json?
-  createdAt      DateTime @default(now())
+  id           String   @id @default(uuid())
+  batchId      String
+  actorId      String?
+  fromSemester Int
+  toSemester   Int
+  promoted     Int      @default(0)
+  graduated    Int      @default(0)
+  skipped      Int      @default(0)
+  details      Json?
+  createdAt    DateTime @default(now())
 
-  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  actor          User?    @relation("RolloverActor", fields: [actorId], references: [id])
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  actor User? @relation("RolloverActor", fields: [actorId], references: [id])
 
   @@index([batchId])
 }
@@ -325,7 +327,7 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime @default(now())
 
-  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
 
   @@index([entityType, entityId])
   @@index([actorId])
@@ -348,7 +350,7 @@ model RefreshToken {
   ip           String?
   createdAt    DateTime  @default(now())
 
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([family])
@@ -370,6 +372,14 @@ model Institution {
   // Which wizard steps are done, so it can be left and resumed.
   setupState          Json?
   setupCompletedAt    DateTime?
+  // Eligibility thresholds. Below `attendanceCritical` is usually a bar on
+  // sitting the exam; between the two is the warning band. They were constants
+  // in the alert engine, which meant a college on a different rule needed a
+  // code change.
+  attendanceCritical  Int       @default(75)
+  attendanceWarning   Int       @default(85)
+  // A mark below this share of the maximum raises an alert.
+  markConcernPercent  Int       @default(40)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -413,4 +423,45 @@ enum AlertSeverity {
   HIGH
   MEDIUM
   LOW
+}
+
+// One row per person: how AMIS looks to them, and what it should assume.
+//
+// Kept apart from Institution deliberately. These are personal settings a
+// mentor changes for themselves; institution settings are one shared row that
+// only a head of department may write.
+model UserPreference {
+  id           String  @id @default(uuid())
+  userId       String  @unique
+  // 'light' | 'dark' | 'system'. Stored as text rather than an enum because
+  // a fourth option should not need a migration.
+  theme        String  @default("system")
+  // 'comfortable' | 'compact'
+  density      String  @default("comfortable")
+  // Nullable on purpose: null means "follow the operating system", which is
+  // not the same as "definitely do not reduce motion". Stored as false, a
+  // hydrating client would override prefers-reduced-motion for anybody who
+  // had never opened Settings.
+  reduceMotion Boolean?
+
+  // Pre-selected in mark entry, attendance entry and import, so the three
+  // dropdowns are not chosen again at the start of every session.
+  defaultDepartmentId String?
+  defaultSemester     Int?
+  defaultAcademicYear Int?
+
+  notifyDailyDigest      Boolean   @default(true)
+  notifyWeeklyDigest     Boolean   @default(false)
+  notifyHighSeverity     Boolean   @default(false)
+  // Watermark for the high-severity mail, so a new subscriber does not get a
+  // backlog and nobody gets the same alert twice.
+  highSeverityNotifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultDepartment Department? @relation("PreferenceDefaultDepartment", fields: [defaultDepartmentId], references: [id], onDelete: SetNull)
+
+  @@index([defaultDepartmentId])
 }

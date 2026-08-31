@@ -147,6 +147,13 @@ export const can = async (user, action, resource = null) => {
     case 'department:manage':
       return scope.role === 'SUPER_ADMIN';
 
+    // The shared institution row: college name, the logo on the reports, and
+    // the eligibility thresholds the alert engine applies. A head of
+    // department sets those; creating and renaming departments stays with the
+    // administrator.
+    case 'institution:manage':
+      return atLeast(scope, 'HOD');
+
     case 'batch:promote':
       if (!atLeast(scope, 'HOD')) return false;
       if (scope.role === 'SUPER_ADMIN' || !resource) return true;

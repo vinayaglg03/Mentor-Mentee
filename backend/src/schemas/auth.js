@@ -51,3 +51,11 @@ export const setUserRoleSchema = {
     role: z.enum(['SUPER_ADMIN', 'HOD', 'COORDINATOR', 'MENTOR']),
   })
 };
+
+export const changePasswordSchema = {
+  body: z.object({
+    currentPassword: z.string().min(1, 'is required'),
+    // Same policy as registration; a weaker one here would be a way around it.
+    newPassword: password,
+  }).strict(),
+};

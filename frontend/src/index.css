@@ -578,7 +578,6 @@ a {
   font-size: var(--text-xs);
   font-weight: 600;
   line-height: var(--leading-ui);
-  text-transform: capitalize;
 }
 
 .badge-success { background: var(--success-soft); color: var(--success-fg); }

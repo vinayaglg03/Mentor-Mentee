@@ -1,3 +1,5 @@
+import { getInstitutionSettings } from './institutionSettings.js';
+
 // Single source of truth for how marks are validated, totalled and turned into
 // alerts. The single-entry endpoint, the bulk grid and the importer all call
 // these helpers - the maths must never be duplicated.
@@ -112,32 +114,40 @@ export const buildScoreAlerts = ({ semester, score }) => {
 
 // --- Attendance ---------------------------------------------------------
 // Colleges run on eligibility thresholds: below 75% is usually a bar on
-// sitting the exam, 75-85% is the warning band.
+// sitting the exam, 75-85% is the warning band. Those two numbers are the
+// defaults, not the rule - a college on a different regulation scheme sets
+// them in Settings, and they reach the engine from the Institution row.
 export const ATTENDANCE_CRITICAL = 75;
 export const ATTENDANCE_WARNING = 85;
 
 export const attendancePercent = ({ classesHeld, classesAttended }) =>
   classesHeld > 0 ? Math.round((classesAttended / classesHeld) * 1000) / 10 : null;
 
-export const buildAttendanceAlerts = ({ subjectCode, classesHeld, classesAttended }) => {
+export const buildAttendanceAlerts = ({
+  subjectCode,
+  classesHeld,
+  classesAttended,
+  critical = ATTENDANCE_CRITICAL,
+  warning = ATTENDANCE_WARNING,
+}) => {
   const percent = attendancePercent({ classesHeld, classesAttended });
   if (percent === null) return [];
 
   const where = subjectCode ? ` in ${subjectCode}` : '';
 
-  if (percent < ATTENDANCE_CRITICAL) {
+  if (percent < critical) {
     return [{
       type: 'LOW_ATTENDANCE',
       severity: 'HIGH',
-      message: `Attendance${where} is ${percent}% (below ${ATTENDANCE_CRITICAL}%).`,
+      message: `Attendance${where} is ${percent}% (below ${critical}%).`,
     }];
   }
 
-  if (percent < ATTENDANCE_WARNING) {
+  if (percent < warning) {
     return [{
       type: 'LOW_ATTENDANCE',
       severity: 'MEDIUM',
-      message: `Attendance${where} is ${percent}% (below ${ATTENDANCE_WARNING}%).`,
+      message: `Attendance${where} is ${percent}% (below ${warning}%).`,
     }];
   }
 
@@ -158,10 +168,18 @@ export const saveAttendance = async (client, { semesterRecordId, subjectId, subj
     create: { semesterRecordId, subjectId, ...data },
   });
 
+  const { attendanceCritical, attendanceWarning } = await getInstitutionSettings();
+
   await persistAlerts(
     client,
     semesterRecordId,
-    buildAttendanceAlerts({ subjectCode, classesHeld, classesAttended })
+    buildAttendanceAlerts({
+      subjectCode,
+      classesHeld,
+      classesAttended,
+      critical: attendanceCritical,
+      warning: attendanceWarning,
+    })
   );
 
   return attendance;

@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f4f7fa;
+  background: var(--surface-sunken);
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
@@ -13,12 +13,12 @@
 }
 
 .global-search:focus-within {
-  background: white;
-  border-color: var(--c-primary);
+  background: var(--surface-raised);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-.global-search-icon { color: var(--fg-muted); flex-shrink: 0; }
+.global-search-icon { color: var(--text-secondary); flex-shrink: 0; }
 
 .global-search-input {
   border: none;
@@ -31,17 +31,17 @@
 
 .global-search-hint {
   font-size: 11px;
-  color: var(--fg-muted);
-  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0 0.3rem;
-  background: white;
+  background: var(--surface-raised);
 }
 
 .global-search-clear {
   border: none;
   background: transparent;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   padding: 0.15rem;
@@ -52,8 +52,8 @@
   top: calc(100% + 0.4rem);
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid var(--border-color);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
   list-style: none;
@@ -75,7 +75,7 @@
   font-size: 13px;
 }
 
-.global-search-results li.is-highlighted { background: #eff6ff; }
+.global-search-results li.is-highlighted { background: var(--accent-soft); }
 
 .global-search-roll { font-weight: 700; }
 .global-search-name { }
@@ -83,7 +83,7 @@
 .global-search-meta {
   grid-column: 1 / -1;
   font-size: 11.5px;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   display: flex;
   gap: 0.5rem;
 }
@@ -92,7 +92,7 @@
 
 .global-search-empty {
   padding: 0.75rem 0.6rem;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: default;
 }

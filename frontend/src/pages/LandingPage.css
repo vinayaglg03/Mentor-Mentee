@@ -1,5 +1,5 @@
 .landing-page {
-  background: white;
+  background: var(--surface-raised);
   min-height: 100vh;
 }
 
@@ -11,17 +11,20 @@
   padding: 0 4rem;
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  /* No backdrop-filter here. A sticky bar with a blur behind it makes the
+     compositor re-blur the strip on every scroll frame, and this is the one
+     page where scrolling smoothness is the first thing anybody notices. The
+     app topbar keeps its blur; one is enough. */
   z-index: 100;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
 }
 
 .lp-logo {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--c-darkest);
+  font-family: var(--font-ui);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .lp-hero {
@@ -64,7 +67,7 @@
 }
 
 .lp-hero h1 span {
-  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+  background: linear-gradient(135deg, var(--accent-solid) 0%, var(--accent-solid-hover) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -72,7 +75,7 @@
 
 .lp-hero p {
   font-size: 1.25rem;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   max-width: 800px;
   margin: 0 auto 3rem;
 }
@@ -80,10 +83,10 @@
 .lp-preview {
   margin-top: 4rem;
   padding: 1rem;
-  background: white;
+  background: var(--surface-raised);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-floating);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   transform: perspective(1000px) rotateX(5deg);
   transition: transform 0.6s ease;
 }
@@ -100,7 +103,7 @@
 
 .lp-features {
   padding: 8rem 2rem;
-  background: var(--bg-base);
+  background: var(--surface);
 }
 
 .lp-section-header {
@@ -122,10 +125,10 @@
 }
 
 .lp-feature-card {
-  background: white;
+  background: var(--surface-raised);
   padding: 3rem 2rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   transition: all 0.3s;
 }
 
@@ -137,7 +140,7 @@
 .lp-feature-icon {
   width: 56px;
   height: 56px;
-  background: var(--bg-subtle);
+  background: var(--surface-sunken);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -152,7 +155,7 @@
 }
 
 .lp-feature-card p {
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 

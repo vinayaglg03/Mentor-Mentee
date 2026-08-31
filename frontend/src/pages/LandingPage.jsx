@@ -19,18 +19,18 @@ const LandingPage = () => {
     <div className="landing-page">
       <nav className="lp-nav">
         <div className="lp-logo flex-between" style={{ gap: '0.75rem' }}>
-          <GraduationCap size={32} color="var(--c-primary)" />
+          <GraduationCap size={32} color="var(--accent-text)" />
           <span>AMIS</span>
         </div>
         <div className="lp-nav-actions">
           {user ? (
             <button className="btn btn-primary" onClick={handleGoToDashboard}>
-              Console <ArrowRight size={16} />
+              Dashboard <ArrowRight size={16} />
             </button>
           ) : (
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-outline" onClick={() => navigate('/login')}>Sign In</button>
-              <button className="btn btn-primary" onClick={() => navigate('/login', { state: { signup: true } })}>Get Started</button>
+              <button className="btn btn-outline" onClick={() => navigate('/login')}>Sign in</button>
+              <button className="btn btn-primary" onClick={() => navigate('/login', { state: { signup: true } })}>Get started</button>
             </div>
           )}
         </div>
@@ -42,7 +42,7 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="lp-badge"
         >
-          Institutional Academic Intelligence v2.0
+          Built for engineering colleges in India
         </motion.div>
         
         <motion.h1 
@@ -50,7 +50,7 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          Institutional Oversight with <span>Live Academic Intelligence</span>
+          Every mentee, <span>and who needs you this week</span>
         </motion.h1>
         
         <motion.p
@@ -58,8 +58,8 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          A professional, role-based platform designed for modern educational institutions. 
-          Empower mentors with longitudinal student tracking and provide HODs with real-time academic oversight.
+          AMIS keeps marks, attendance and mentoring records for a whole department in one
+          place, and tells each mentor which of their students to speak to first.
         </motion.p>
 
         <motion.div 
@@ -71,15 +71,15 @@ const LandingPage = () => {
         >
           {user ? (
             <button className="btn btn-primary btn-lg" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem' }} onClick={handleGoToDashboard}>
-              Enter Intelligence Terminal <ArrowRight size={20} />
+              Go to dashboard <ArrowRight size={20} />
             </button>
           ) : (
             <>
               <button className="btn btn-primary btn-lg" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem' }} onClick={() => navigate('/login', { state: { signup: true } })}>
-                Deploy System <ArrowRight size={20} />
+                Get started <ArrowRight size={20} />
               </button>
               <button className="btn btn-outline btn-lg" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem' }} onClick={() => navigate('/login')}>
-                Institutional Login
+                Sign in
               </button>
             </>
           )}
@@ -93,7 +93,7 @@ const LandingPage = () => {
         >
           <img
             src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2026"
-            alt="AMIS Terminal Preview"
+            alt="The AMIS department dashboard, showing student numbers, pass rate and open alerts"
             className="lp-preview-image"
           />
         </motion.div>
@@ -101,16 +101,16 @@ const LandingPage = () => {
 
       <section className="lp-features">
         <div className="lp-section-header">
-          <h2>Institutional Core Features</h2>
-          <p className="text-muted">High-performance tools built for academic governance.</p>
+          <h2>What it does</h2>
+          <p className="text-muted">Four things, done properly.</p>
         </div>
 
         <div className="lp-features-grid">
           {[
-            { icon: <BarChart3 />, title: 'Real-time Analytics', desc: 'Global performance aggregation with semester-wise breakdown for institutional oversight.' },
-            { icon: <Shield />, title: 'Longitudinal Tracking', desc: 'Complete historical academic records with progressive performance mapping.' },
-            { icon: <BellRing />, title: 'Proactive Alerting', desc: 'Intelligent security and academic alerts to identify at-risk students instantly.' },
-            { icon: <Target />, title: 'Mentor Management', desc: 'Direct assignment and workload tracking for departmental faculty.' },
+            { icon: <BarChart3 />, title: 'Marks and attendance', desc: 'Enter a whole class at once, or paste from a spreadsheet. SGPA and CGPA are calculated for you.' },
+            { icon: <Shield />, title: 'The full record', desc: 'Every semester a student has been through, with who changed what and when.' },
+            { icon: <BellRing />, title: 'Alerts that fire early', desc: 'Attendance below the threshold, marks dropping, nobody spoken to in a month.' },
+            { icon: <Target />, title: 'Mentor assignment', desc: 'Assign students to mentors, see how the load is spread, and cap it.' },
           ].map((f, i) => (
             <motion.div 
               key={i}
@@ -128,15 +128,15 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <footer style={{ padding: '6rem 2rem', background: 'var(--c-darkest)', color: 'white' }}>
+      <footer style={{ padding: '6rem 2rem', background: 'var(--chrome-bg)', color: 'var(--text-on-accent)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="lp-logo flex-between" style={{ gap: '0.75rem', opacity: 0.6 }}>
             <GraduationCap size={24} />
             <span>AMIS</span>
           </div>
           <div style={{ textAlign: 'right', opacity: 0.6, fontSize: '0.9rem' }}>
-            <p>&copy; 2026 Institutional Academic Intelligence. All rights reserved.</p>
-            <p>Built for Smarter Academic Governance</p>
+            <p>&copy; 2026 AMIS</p>
+            <p>Academic Mentor Intelligence System</p>
           </div>
         </div>
       </footer>

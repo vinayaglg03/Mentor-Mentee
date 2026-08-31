@@ -1,5 +1,6 @@
-import React, { lazy, Suspense } from 'react';
-import { loadCharts } from '../lib/chartSetup';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { loadCharts, applyChartTheme } from '../lib/chartSetup';
+import { useTheme } from '../context/useTheme';
 
 // Thin wrappers so a page can write <Bar …> without knowing that the charting
 // library is fetched on demand. See lib/chartSetup.js for why.
@@ -18,20 +19,43 @@ const ChartFallback = ({ height }) => (
   />
 );
 
-export const Bar = ({ height, ...props }) => (
-  <Suspense fallback={<ChartFallback height={height} />}>
-    <LazyBar {...props} />
-  </Suspense>
-);
+// chart.js reads its defaults once, when a chart is constructed, so switching
+// theme has to re-read the tokens and rebuild the canvas. Keying on the
+// resolved theme does that: cheap, and it happens at most once per switch.
+const useChartTheme = () => {
+  const { resolvedTheme } = useTheme();
 
-export const Line = ({ height, ...props }) => (
-  <Suspense fallback={<ChartFallback height={height} />}>
-    <LazyLine {...props} />
-  </Suspense>
-);
+  useEffect(() => { applyChartTheme(); }, [resolvedTheme]);
 
-export const Doughnut = ({ height, ...props }) => (
-  <Suspense fallback={<ChartFallback height={height} />}>
-    <LazyDoughnut {...props} />
-  </Suspense>
-);
+  return resolvedTheme;
+};
+
+export const Bar = ({ height, ...props }) => {
+  const theme = useChartTheme();
+
+  return (
+    <Suspense fallback={<ChartFallback height={height} />}>
+      <LazyBar key={theme} {...props} />
+    </Suspense>
+  );
+};
+
+export const Line = ({ height, ...props }) => {
+  const theme = useChartTheme();
+
+  return (
+    <Suspense fallback={<ChartFallback height={height} />}>
+      <LazyLine key={theme} {...props} />
+    </Suspense>
+  );
+};
+
+export const Doughnut = ({ height, ...props }) => {
+  const theme = useChartTheme();
+
+  return (
+    <Suspense fallback={<ChartFallback height={height} />}>
+      <LazyDoughnut key={theme} {...props} />
+    </Suspense>
+  );
+};

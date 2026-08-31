@@ -121,8 +121,8 @@ const StudentDetail = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 11 } } },
-      tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
+      legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'inherit', size: 11 } } },
+      tooltip: { padding: 12, cornerRadius: 8 }
     },
     scales: {
       y: { beginAtZero: true, max: 50, grid: { color: 'rgba(0,0,0,0.04)' } },
@@ -152,7 +152,7 @@ const StudentDetail = () => {
           backgroundColor: 'rgba(70, 150, 218, 0.2)',
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: '#fff',
+          pointBackgroundColor: 'var(--surface-raised)',
           pointBorderColor: '#4696DA',
           pointBorderWidth: 2,
           pointRadius: 4,
@@ -165,7 +165,7 @@ const StudentDetail = () => {
           fill: false,
           tension: 0.4,
           borderDash: [6, 4],
-          pointBackgroundColor: '#fff',
+          pointBackgroundColor: 'var(--surface-raised)',
           pointBorderColor: '#047857',
           pointBorderWidth: 2,
           pointRadius: 3,
@@ -227,8 +227,8 @@ const StudentDetail = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, font: { family: 'Inter', size: 11 } } },
-      tooltip: { backgroundColor: '#030F1B', padding: 12, cornerRadius: 8 }
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, font: { family: 'inherit', size: 11 } } },
+      tooltip: { padding: 12, cornerRadius: 8 }
     },
     scales: {
       // Grade points, not marks.
@@ -324,7 +324,7 @@ const StudentDetail = () => {
           className="student-profile-glass"
         >
           <div className="profile-main">
-            <button onClick={() => navigate(-1)} className="btn-back-glass" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '50%', marginBottom: '1.5rem', cursor: 'pointer' }}>
+            <button onClick={() => navigate(-1)} className="btn-back-glass" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'var(--chrome-fg)', padding: '0.5rem', borderRadius: '50%', marginBottom: '1.5rem', cursor: 'pointer' }}>
               <ArrowLeft size={20} />
             </button>
             <h1>
@@ -347,7 +347,7 @@ const StudentDetail = () => {
               type="button"
               onClick={downloadReport}
               disabled={downloadingReport}
-              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'var(--text-on-accent)' }}
             >
               <FileDown size={16} /> {downloadingReport ? 'Preparing…' : 'Mentoring report'}
             </button>
@@ -357,7 +357,7 @@ const StudentDetail = () => {
               className="btn btn-outline"
               type="button"
               onClick={exportData}
-              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.4)', color: 'var(--text-on-accent)' }}
             >
               <Download size={16} /> Export data
             </button>
@@ -373,7 +373,7 @@ const StudentDetail = () => {
           <div className="card stat-card">
             <label>Current CGPA</label>
             <div className="value">{currentCgpa ?? '—'}</div>
-            <GraduationCap size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
+            <GraduationCap size={20} color="var(--accent-text)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
           <div className="card stat-card">
             <label>Active Alerts</label>
@@ -392,7 +392,7 @@ const StudentDetail = () => {
             <div className={`value ${attendanceClass(selectedRecord?.attendancePercent)}`}>
               {selectedRecord?.attendancePercent == null ? '—' : `${selectedRecord.attendancePercent}%`}
             </div>
-            <Book size={20} color="var(--c-primary)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
+            <Book size={20} color="var(--accent-text)" style={{ position: 'absolute', top: '1rem', right: '1rem' }} />
           </div>
         </div>
 
@@ -509,7 +509,7 @@ const StudentDetail = () => {
 
                   <div className="card mb-4">
                     <div className="card-header">
-                      <h3><AlertCircle size={18} /> Intelligence Alerts</h3>
+                      <h3><AlertCircle size={18} /> Alerts</h3>
                     </div>
                     <div className="list-content">
                       {selectedRecord.alerts?.map(alert => (

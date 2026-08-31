@@ -88,10 +88,7 @@ const HODDashboard = () => {
     plugins: { 
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#030F1B',
         padding: 12,
-        titleFont: { size: 14, family: 'Outfit' },
-        bodyFont: { size: 13, family: 'Inter' },
         cornerRadius: 8
       }
     }, 
@@ -99,11 +96,11 @@ const HODDashboard = () => {
       y: { 
         beginAtZero: true, 
         grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
-        ticks: { color: '#64748b', font: { size: 11 } }
+        ticks: { font: { size: 11 } }
       }, 
       x: { 
         grid: { display: false },
-        ticks: { color: '#64748b', font: { size: 11 } }
+        ticks: { font: { size: 11 } }
       } 
     } 
   };
@@ -168,9 +165,9 @@ const HODDashboard = () => {
           <div className="card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {analytics?.recentAlerts?.map(alert => (
-                <div key={alert.id} style={{ padding: '0.75rem', background: '#fff1f2', borderLeft: '4px solid #ef4444', borderRadius: '4px' }}>
+                <div key={alert.id} style={{ padding: '0.75rem', background: 'var(--danger-soft)', borderLeft: '4px solid var(--danger)', borderRadius: '4px' }}>
                   <div style={{ fontWeight: '600', fontSize: '13px' }}>{alert.student?.name || 'Unknown'} ({alert.student?.rollNumber || 'N/A'})</div>
-                  <div style={{ fontSize: '12px', color: '#7f1d1d' }}>{alert.message}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--danger-fg)' }}>{alert.message}</div>
                 </div>
               ))}
               {(!analytics?.recentAlerts || analytics?.recentAlerts?.length === 0) && <p className="text-muted">No recent critical alerts.</p>}
@@ -188,8 +185,8 @@ const HODDashboard = () => {
       <div className="card mt-4" style={{ padding: 0 }}>
         <div className="card-header" style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
           <div className="flex-between">
-            <h3>Institutional Student Registry</h3>
-            <div className="search-box" style={{ width: '250px', background: '#f4f7fa', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <h3>Students in your department</h3>
+            <div className="search-box" style={{ width: '250px', background: 'var(--surface-sunken)', padding: '0.4rem 0.8rem', borderRadius: '20px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <Search size={16} className="text-muted" />
               <input type="text" placeholder="Search USN/Name..." style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
@@ -236,7 +233,7 @@ const HODDashboard = () => {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${s.id}`); }} title="View Longitudinal Profile">
+                          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); navigate(`/student/${s.id}`); }} title="Open student">
                             <Eye size={18} />
                           </button>
                           <button className="btn-icon" onClick={(e) => { e.stopPropagation(); toggleRow(s.id); }} title="Toggle Logs">
@@ -247,7 +244,7 @@ const HODDashboard = () => {
                     </tr>
                     {expandedStudentId === s.id && (
                       <tr className="expanded-row-bg">
-                        <td colSpan="6" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                        <td colSpan="6" style={{ padding: '1.5rem', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                           <div style={{ display: 'flex', gap: '2rem' }}>
                             <div style={{ flex: 1 }}>
                               <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -255,10 +252,10 @@ const HODDashboard = () => {
                               </h4>
                               <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                                 {(s.semesterRecords || []).map(record => (
-                                  <div key={record.id} className="card" style={{ padding: '1rem', background: 'white', minWidth: '300px', flex: 1 }}>
-                                    <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--c-primary)' }}>Semester {record.semester}</h5>
+                                  <div key={record.id} className="card" style={{ padding: '1rem', background: 'var(--surface-raised)', minWidth: '300px', flex: 1 }}>
+                                    <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-text)' }}>Semester {record.semester}</h5>
                                     {(record.progressLogs || []).length > 0 ? (
-                                      <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--c-darkest)', fontSize: '14px' }}>
+                                      <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--text-primary)', fontSize: '14px' }}>
                                         {(record.progressLogs || []).map(log => (
                                           <li key={log.id} style={{ marginBottom: '0.5rem' }}>
                                             {log?.remark} <br/><span className="text-muted" style={{ fontSize: '11px' }}>{new Date(log?.date).toLocaleDateString()} - {log.mentor?.name}</span>
@@ -301,9 +298,9 @@ const HODDashboard = () => {
                 </div>
                 <div className="user-avatar" style={{ width: '32px', height: '32px' }}>{m?.name?.charAt(0) || 'M'}</div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f4f7fa', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-sunken)', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '12px', fontWeight: '500' }}>Mentees Assigned</span>
-                <span className="badge" style={{ background: 'var(--c-primary)', color: 'white' }}>{m?._count?.students || 0}</span>
+                <span className="badge" style={{ background: 'var(--accent-solid)', color: 'var(--text-on-accent)' }}>{m?._count?.students || 0}</span>
               </div>
            </div>
          ))}
@@ -315,20 +312,20 @@ const HODDashboard = () => {
     <div className="dashboard-view">
       <div className="page-header" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-          <div className="icon-badge" style={{ background: 'var(--c-primary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'white' }}>
+          <div className="icon-badge" style={{ background: 'var(--accent-solid)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-on-accent)' }}>
             <TrendingUp size={24} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.85rem' }}>HOD Intelligence Terminal</h1>
-            <p className="text-muted">Institutional oversight and longitudinal performance tracking</p>
+            <h1>Department dashboard</h1>
+            <p className="text-muted">Marks, attendance and alerts across your department</p>
           </div>
         </div>
       </div>
 
-      <div className="tabs mt-4" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-         <button className={`btn ${activeTab==='overview'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='overview' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('overview')}>Overview</button>
-         <button className={`btn ${activeTab==='students'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='students' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('students')}>Institutional Registry</button>
-         <button className={`btn ${activeTab==='mentors'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='mentors' ? '2px solid var(--c-primary)' : 'none' }} onClick={()=>setActiveTab('mentors')}>Mentor Registry</button>
+      <div className="tabs mt-4" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)' }}>
+         <button className={`btn ${activeTab==='overview'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='overview' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('overview')}>Overview</button>
+         <button className={`btn ${activeTab==='students'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='students' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('students')}>Students</button>
+         <button className={`btn ${activeTab==='mentors'?'btn-primary':'btn-outline'}`} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: activeTab==='mentors' ? '2px solid var(--accent-solid)' : 'none' }} onClick={()=>setActiveTab('mentors')}>Mentors</button>
       </div>
 
       {loading ? (

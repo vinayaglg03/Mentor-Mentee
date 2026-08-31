@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top left, #f8fafc, #f1f5f9);
+  background: radial-gradient(circle at top left, var(--surface-sunken), var(--surface-sunken));
   padding: 2rem;
 }
 
@@ -19,7 +19,7 @@
 }
 
 .auth-card {
-  background: white;
+  background: var(--surface-raised);
   padding: 3rem 2.5rem;
   border-radius: var(--radius-xl);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
@@ -37,7 +37,7 @@
 }
 
 .auth-header p {
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 
@@ -51,11 +51,11 @@
   text-align: center;
   margin-top: 1.5rem;
   font-size: 14px;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
 }
 
 .auth-switch span {
-  color: var(--c-primary);
+  color: var(--accent-text);
   font-weight: 600;
   cursor: pointer;
 }
@@ -76,17 +76,17 @@
 
 .info-alert {
   background: rgba(37, 99, 235, 0.1);
-  color: var(--c-primary-dark);
+  color: var(--accent-text);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 14px;
   margin-bottom: 1.5rem;
-  border-left: 4px solid var(--c-primary);
+  border-left: 4px solid var(--accent);
 }
 
 .btn-link {
   font-size: 14px;
-  color: var(--c-primary-dark);
+  color: var(--accent-text);
 }
 
 .btn-link:hover {
@@ -98,25 +98,25 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  background: white;
-  color: #3c4043;
-  border: 1px solid var(--border-color);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   font-weight: 600;
 }
 
 .btn-google:hover {
-  background: #f8fafc;
-  border-color: #c6cbd2;
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
 }
 
 .btn-google:focus-visible {
-  outline: 2px solid var(--c-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 .auth-hint {
   font-size: 12.5px;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   text-align: center;
   margin: 0.75rem 0 0 0;
 }

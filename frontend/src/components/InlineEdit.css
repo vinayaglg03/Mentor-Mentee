@@ -13,17 +13,17 @@
   text-align: left;
 }
 
-.inline-edit-trigger svg { opacity: 0; color: var(--fg-muted); flex-shrink: 0; }
+.inline-edit-trigger svg { opacity: 0; color: var(--text-secondary); flex-shrink: 0; }
 
 .inline-edit-trigger:hover {
-  border-color: var(--border-color);
-  background: #f8fafc;
+  border-color: var(--border);
+  background: var(--surface-sunken);
 }
 
 .inline-edit-trigger:hover svg { opacity: 1; }
 
 .inline-edit-trigger:focus-visible {
-  outline: 2px solid var(--c-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -31,7 +31,7 @@
 
 .inline-edit-trigger.is-saving { opacity: 0.6; }
 
-.inline-edit-empty { color: var(--fg-muted); font-style: italic; }
+.inline-edit-empty { color: var(--text-secondary); font-style: italic; }
 
 .inline-edit-field {
   display: inline-flex;

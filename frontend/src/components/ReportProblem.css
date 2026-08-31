@@ -3,24 +3,24 @@
   align-items: center;
   gap: 0.45rem;
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
   font: inherit;
   font-size: 12.5px;
-  color: var(--fg-muted);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .report-problem-trigger:hover {
-  border-color: var(--c-primary);
-  color: var(--c-primary);
+  border-color: var(--accent-text);
+  color: var(--accent-text);
 }
 
 .report-problem-card { max-width: 520px; }
 
 .report-problem-card code {
-  background: #f1f5f9;
+  background: var(--surface-sunken);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 12px;
